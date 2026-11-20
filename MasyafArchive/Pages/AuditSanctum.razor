@@ -1,0 +1,528 @@
+@page "/audit-sanctum"
+@using MasyafArchive.Models
+@using MasyafArchive.Services
+@inject ArchiveService ArchiveService
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    @if (!AuthState.IsAuthenticated || !AuthState.IsAuditor)
+    {
+        <!-- Locked Sanctum Gate -->
+        <div class="max-w-xl mx-auto my-16 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center candle-glow">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#9E332D] flex items-center justify-center text-[#9E332D] bg-[#0F0E0D]">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            
+            <h2 class="font-serif text-3xl font-bold text-[#EDE6D6] mb-2">
+                The Sealed Sanctum
+            </h2>
+            <p class="text-sm font-sans text-[#9E9587] leading-relaxed mb-6">
+                The audit ledgers and moderation seals are guarded by the Mentors of the Creed. Only scholars bearing the <span class="text-[#9E332D] font-mono font-semibold">auditor</span> seal may enter this chamber.
+            </p>
+
+            <div class="p-4 rounded-sm border border-[#2E2A25] bg-[#0F0E0D] mb-6">
+                <span class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-2">
+                    Evaluator Verification Bypass:
+                </span>
+                <button type="button"
+                        @onclick="SignInAsAltair"
+                        class="w-full py-2.5 px-4 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-md">
+                    Unlock with Altaïr Credentials (Auditor)
+                </button>
+            </div>
+
+            <a href="/" class="text-xs font-mono uppercase tracking-wider text-[#9E9587] hover:text-[#EDE6D6]">
+                Return to the Library Hall
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b border-[#2E2A25]">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono tracking-widest uppercase bg-[#9E332D]/20 border border-[#9E332D] text-[#EDE6D6]">
+                        Auditor Authority
+                    </span>
+                    <span class="text-xs font-mono text-[#9E9587]">
+                        Guardian: <strong class="text-[#C8963E]">@AuthState.CurrentUser?.Username</strong>
+                    </span>
+                </div>
+                <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#EDE6D6]">
+                    The Auditor's Sanctum
+                </h1>
+                <p class="text-sm text-[#9E9587] mt-1 font-sans">
+                    Chronological verification ledger and archive moderation seals.
+                </p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex items-center bg-[#181614] border border-[#2E2A25] p-1 rounded-sm text-xs font-mono">
+                <button type="button"
+                        @onclick='() => activeTab = "ledger"'
+                        class='px-4 py-2 uppercase tracking-wider rounded-sm transition-all @(activeTab == "ledger" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "text-[#9E9587] hover:text-[#EDE6D6]")'>
+                    Audit Ledger (@auditLogs.Count)
+                </button>
+                <button type="button"
+                        @onclick='() => activeTab = "moderation"'
+                        class='px-4 py-2 uppercase tracking-wider rounded-sm transition-all @(activeTab == "moderation" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "text-[#9E9587] hover:text-[#EDE6D6]")'>
+                    Archive Moderation (@activeBooks.Count Active, @sealedBooks.Count Sealed)
+                </button>
+            </div>
+        </div>
+
+        @if (activeTab == "ledger")
+        {
+            <!-- AUDIT LEDGER VIEW -->
+            <div class="space-y-4">
+                
+                <!-- Action Filter Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#181614] border border-[#2E2A25] rounded-sm">
+                    <div class="flex items-center gap-2 flex-wrap text-xs font-mono">
+                        <span class="text-[#9E9587] uppercase">Filter Action:</span>
+                        @foreach (var act in new[] { "All", "INSCRIBE_TOME", "SEAL_TOME", "UNSEAL_TOME", "EDIT_TOME_METADATA", "INSCRIBE_MARGIN_NOTE", "SEAL_MARGIN_NOTE", "SCHOLAR_SIGN_IN" })
+                        {
+                            <button type="button"
+                                    @onclick="() => FilterByAction(act)"
+                                    class='px-2.5 py-1 rounded-sm border uppercase text-[11px] transition-all @(selectedAction == act ? "bg-[#C8963E] text-[#0F0E0D] border-[#C8963E] font-bold" : "bg-[#0F0E0D] border-[#2E2A25] text-[#9E9587] hover:text-[#EDE6D6]")'>
+                                @act
+                            </button>
+                        }
+                    </div>
+
+                    <button type="button"
+                            @onclick="LoadDataAsync"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[#2E2A25] bg-[#0F0E0D] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
+                        <svg class="w-3.5 h-3.5 text-[#C8963E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Refresh Ledger
+                    </button>
+                </div>
+
+                <!-- Ledger Table -->
+                <div class="bg-[#181614] border border-[#2E2A25] rounded-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs font-sans">
+                            <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] tracking-wider text-[11px]">
+                                <tr>
+                                    <th class="py-3 px-4">Timestamp (UTC)</th>
+                                    <th class="py-3 px-4">Scholar / Role</th>
+                                    <th class="py-3 px-4">Action</th>
+                                    <th class="py-3 px-4">Target</th>
+                                    <th class="py-3 px-4">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#2E2A25]/60 font-mono">
+                                @if (isLoading)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-xs text-[#9E9587]">
+                                            Unrolling parchment ledger...
+                                        </td>
+                                    </tr>
+                                }
+                                else if (auditLogs.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-xs text-[#9E9587]">
+                                            No audit records found matching this criteria.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var log in auditLogs)
+                                    {
+                                        <tr class="hover:bg-[#201E1A]/60 transition-colors">
+                                            <td class="py-3 px-4 text-[#9E9587] whitespace-nowrap">
+                                                @log.CreatedAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                                            </td>
+                                            <td class="py-3 px-4 whitespace-nowrap">
+                                                <div class="flex items-center gap-1.5 font-sans">
+                                                    <span class="font-semibold text-[#EDE6D6]">@log.ActorName</span>
+                                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-sm uppercase @(log.ActorRole.Equals("auditor", StringComparison.OrdinalIgnoreCase) ? "bg-[#9E332D]/30 text-[#EDE6D6] border border-[#9E332D]" : "bg-[#2E2A25] text-[#9E9587]")">
+                                                        @log.ActorRole
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-4 whitespace-nowrap">
+                                                <span class="inline-block px-2 py-0.5 text-[10px] uppercase font-bold rounded-sm @GetActionBadgeClass(log.Action)">
+                                                    @log.Action
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 text-[#C8963E] font-medium whitespace-nowrap">
+                                                @log.TargetTitle
+                                            </td>
+                                            <td class="py-3 px-4 text-[#9E9587] font-sans text-xs max-w-md">
+                                                @log.Details
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- ARCHIVE MODERATION VIEW -->
+            <div class="space-y-8">
+                
+                <!-- Section 1: Active Tomes Management -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
+                                Active Archive Catalog
+                            </h3>
+                            <p class="text-xs text-[#9E9587]">
+                                Tomes currently unsealed and accessible to all travelers.
+                            </p>
+                        </div>
+                        <span class="text-xs font-mono text-[#C8963E]">
+                            @activeBooks.Count Tomes Available
+                        </span>
+                    </div>
+
+                    <div class="bg-[#181614] border border-[#2E2A25] rounded-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs font-sans">
+                                <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] text-[11px]">
+                                    <tr>
+                                        <th class="py-3 px-4">ID</th>
+                                        <th class="py-3 px-4">Title</th>
+                                        <th class="py-3 px-4">Author</th>
+                                        <th class="py-3 px-4">Category</th>
+                                        <th class="py-3 px-4">Inscribed By</th>
+                                        <th class="py-3 px-4">Downloads</th>
+                                        <th class="py-3 px-4 text-right">Moderation Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#2E2A25]/60">
+                                    @foreach (var book in activeBooks)
+                                    {
+                                        <tr class="hover:bg-[#201E1A]/50 transition-colors">
+                                            <td class="py-3 px-4 font-mono text-[#9E9587]">
+                                                #@book.Id.ToString("D4")
+                                            </td>
+                                            <td class="py-3 px-4 font-serif font-bold text-sm text-[#EDE6D6]">
+                                                @book.Title
+                                            </td>
+                                            <td class="py-3 px-4 text-[#9E9587]">
+                                                @book.Author
+                                            </td>
+                                            <td class="py-3 px-4">
+                                                <span class="px-2 py-0.5 font-mono text-[10px] uppercase rounded-sm border border-[#2E2A25] bg-[#0F0E0D] text-[#C8963E]">
+                                                    @book.Category
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 text-[#9E9587]">
+                                                @book.UploadedBy
+                                            </td>
+                                            <td class="py-3 px-4 font-mono text-[#9E9587]">
+                                                @book.DownloadCount
+                                            </td>
+                                            <td class="py-3 px-4 text-right">
+                                                <div class="inline-flex items-center gap-2">
+                                                    <button type="button"
+                                                            @onclick="() => OpenEditModal(book)"
+                                                            class="px-2.5 py-1 text-[11px] font-mono uppercase border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
+                                                        Edit
+                                                    </button>
+                                                    <button type="button"
+                                                            @onclick="() => PromptSeal(book)"
+                                                            class="px-2.5 py-1 text-[11px] font-mono uppercase border border-[#9E332D]/40 hover:border-[#9E332D] text-[#9E332D] hover:bg-[#9E332D]/10 rounded-sm transition-all">
+                                                        Seal Tome
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sacred-divider">
+                    <div class="sacred-divider-diamond"></div>
+                </div>
+
+                <!-- Section 2: Sealed Tomes Vault (Soft-Deleted & Recovery) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#9E332D]"></span>
+                                <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
+                                    The Sealed Vault (Soft-Deleted Tomes)
+                                </h3>
+                            </div>
+                            <p class="text-xs text-[#9E9587]">
+                                Tomes placed in quarantine by Auditor decree. Can be restored to the catalog at any time.
+                            </p>
+                        </div>
+                        <span class="text-xs font-mono text-[#9E332D]">
+                            @sealedBooks.Count Sealed Tomes
+                        </span>
+                    </div>
+
+                    @if (sealedBooks.Count == 0)
+                    {
+                        <div class="p-8 text-center bg-[#181614] border border-[#2E2A25] rounded-sm text-xs font-mono text-[#9E9587]">
+                            No tomes are currently sealed in the quarantine vault.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bg-[#181614] border border-[#2E2A25] rounded-sm overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs font-sans">
+                                    <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] text-[11px]">
+                                        <tr>
+                                            <th class="py-3 px-4">ID</th>
+                                            <th class="py-3 px-4">Title</th>
+                                            <th class="py-3 px-4">Author</th>
+                                            <th class="py-3 px-4">Sealed Date (UTC)</th>
+                                            <th class="py-3 px-4 text-right">Sanctuary Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-[#2E2A25]/60">
+                                        @foreach (var book in sealedBooks)
+                                        {
+                                            <tr class="hover:bg-[#201E1A]/50 transition-colors">
+                                                <td class="py-3 px-4 font-mono text-[#9E9587]">
+                                                    #@book.Id.ToString("D4")
+                                                </td>
+                                                <td class="py-3 px-4 font-serif font-bold text-sm text-[#EDE6D6]">
+                                                    @book.Title
+                                                </td>
+                                                <td class="py-3 px-4 text-[#9E9587]">
+                                                    @book.Author
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-[#9E332D]">
+                                                    @(book.DeletedAt?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Unknown")
+                                                </td>
+                                                <td class="py-3 px-4 text-right">
+                                                    <button type="button"
+                                                            @onclick="() => RestoreBook(book.Id)"
+                                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm">
+                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                                                            <path d="M3 3v5h5"></path>
+                                                        </svg>
+                                                        Unseal & Restore
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Modal for Soft-Delete Reason Prompt -->
+@if (isSealPromptOpen && bookToSeal != null)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-in">
+        <div class="w-full max-w-md bg-[#181614] border border-[#9E332D] rounded-sm p-6 space-y-4 candle-glow">
+            <div class="flex items-center gap-2 text-[#9E332D]">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
+                    Apply Auditor Seal
+                </h3>
+            </div>
+            
+            <p class="text-xs text-[#9E9587]">
+                Sealing <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> will remove it from the public library hall into the Sealed Vault.
+            </p>
+
+            <div>
+                <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">
+                    Auditor Reason (Inscribed into Audit Ledger):
+                </label>
+                <input type="text"
+                       @bind="sealReason"
+                       placeholder="e.g. Manuscript under doctrinal audit"
+                       class="w-full text-xs p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#9E332D] focus:outline-none" />
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3">
+                <button type="button"
+                        @onclick="() => isSealPromptOpen = false"
+                        class="px-3 py-1.5 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">
+                    Cancel
+                </button>
+                <button type="button"
+                        @onclick="ConfirmSealBook"
+                        class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm transition-all shadow-md">
+                    Apply Seal
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Tome Modal -->
+<EditTomeModal IsOpen="isEditModalOpen"
+               Book="bookToEdit"
+               OnClose="() => isEditModalOpen = false"
+               OnSaved="HandleBookUpdated" />
+
+@code {
+    private string activeTab = "ledger"; // "ledger" or "moderation"
+    private string selectedAction = "All";
+    private bool isLoading = false;
+
+    private List<AuditLog> auditLogs = new();
+    private List<Book> activeBooks = new();
+    private List<Book> sealedBooks = new();
+
+    private bool isSealPromptOpen = false;
+    private Book? bookToSeal;
+    private string sealReason = "";
+
+    private bool isEditModalOpen = false;
+    private Book? bookToEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.OnChange += HandleAuthChange;
+        await LoadDataAsync();
+    }
+
+    private void HandleAuthChange()
+    {
+        InvokeAsync(async () =>
+        {
+            await LoadDataAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task LoadDataAsync()
+    {
+        if (!AuthState.IsAuditor) return;
+
+        isLoading = true;
+        try
+        {
+            auditLogs = await ArchiveService.GetAuditLogsAsync(selectedAction);
+            activeBooks = await ArchiveService.GetBooksAsync("All", null, 100);
+            sealedBooks = await ArchiveService.GetSealedBooksAsync(100);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading audit data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FilterByAction(string action)
+    {
+        selectedAction = action;
+        isLoading = true;
+        try
+        {
+            auditLogs = await ArchiveService.GetAuditLogsAsync(selectedAction);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void PromptSeal(Book book)
+    {
+        bookToSeal = book;
+        sealReason = "Archival moderation review";
+        isSealPromptOpen = true;
+    }
+
+    private async Task ConfirmSealBook()
+    {
+        if (bookToSeal == null || !AuthState.IsAuditor) return;
+
+        var user = AuthState.CurrentUser!;
+        var success = await ArchiveService.SoftDeleteBookAsync(bookToSeal.Id, user.Username, user.Role, sealReason);
+        if (success)
+        {
+            isSealPromptOpen = false;
+            bookToSeal = null;
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task RestoreBook(long bookId)
+    {
+        if (!AuthState.IsAuditor) return;
+
+        var user = AuthState.CurrentUser!;
+        var success = await ArchiveService.RestoreBookAsync(bookId, user.Username, user.Role);
+        if (success)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private void OpenEditModal(Book book)
+    {
+        bookToEdit = book;
+        isEditModalOpen = true;
+    }
+
+    private async Task HandleBookUpdated(Book updated)
+    {
+        isEditModalOpen = false;
+        await LoadDataAsync();
+    }
+
+    private async Task SignInAsAltair()
+    {
+        await AuthState.SignInAsync("Altair", "masyaf1191");
+        await LoadDataAsync();
+    }
+
+    private string GetActionBadgeClass(string action) => action switch
+    {
+        "INSCRIBE_TOME" => "bg-[#C8963E]/20 text-[#DDA84B] border border-[#C8963E]/40",
+        "SEAL_TOME" => "bg-[#9E332D]/20 text-[#EDE6D6] border border-[#9E332D]",
+        "UNSEAL_TOME" => "bg-[#C8963E]/30 text-[#EDE6D6] border border-[#C8963E]",
+        "EDIT_TOME_METADATA" => "bg-[#2E2A25] text-[#EDE6D6] border border-[#8C6D3F]",
+        "INSCRIBE_MARGIN_NOTE" => "bg-[#201E1A] text-[#C8963E] border border-[#2E2A25]",
+        "SEAL_MARGIN_NOTE" => "bg-[#9E332D]/10 text-[#9E332D] border border-[#9E332D]/40",
+        "SCHOLAR_SIGN_IN" => "bg-[#181614] text-[#9E9587] border border-[#2E2A25]",
+        "SCHOLAR_REGISTER" => "bg-[#C8963E]/10 text-[#C8963E] border border-[#C8963E]/30",
+        _ => "bg-[#2E2A25] text-[#9E9587]"
+    };
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= HandleAuthChange;
+    }
+}

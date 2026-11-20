@@ -1,0 +1,448 @@
+@page "/"
+@using MasyafArchive.Models
+@using MasyafArchive.Services
+@inject ArchiveService ArchiveService
+@inject AuthStateService AuthState
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<!-- Atmospheric Hero Banner -->
+<div class="relative overflow-hidden border-b border-[#2E2A25] bg-gradient-to-b from-[#181614] via-[#121110] to-[#0F0E0D] py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+    <!-- Ambient geometric lines background -->
+    <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#C8963E 1px, transparent 1px); background-size: 32px 32px;"></div>
+
+    <div class="max-w-7xl mx-auto text-center relative z-10">
+        <!-- Creed Crest Mark -->
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full border border-[#C8963E]/30 bg-[#0F0E0D] flex items-center justify-center text-[#C8963E] shadow-xl">
+            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polygon points="50,15 85,80 50,65 15,80" />
+                <circle cx="50" cy="50" r="10" />
+            </svg>
+        </div>
+
+        <p class="font-mono text-xs tracking-[0.3em] uppercase text-[#C8963E] mb-2">
+            Open-Source Digital Library
+        </p>
+
+        <h1 class="font-serif text-4xl sm:text-6xl font-bold tracking-tight text-[#EDE6D6] mb-4">
+            The Masyaf Archive
+        </h1>
+
+        <p class="max-w-2xl mx-auto font-serif italic text-base sm:text-lg text-[#9E9587] leading-relaxed mb-6">
+            "Open-Source Digital Library — Free to read online and download without an account."
+        </p>
+
+        <!-- Dynamic Archive Counters -->
+        <div class="inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 px-6 py-3 rounded-sm border border-[#2E2A25] bg-[#181614]/80 backdrop-blur-sm font-mono text-xs">
+            <div>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Total Books</span>
+                <span class="text-base font-bold text-[#C8963E]">@stats.TotalBooks</span>
+            </div>
+            <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
+            <div>
+                <span class="text-[#9E9587] uppercase text-[10px] block">General Books</span>
+                <span class="text-base font-bold text-[#EDE6D6]">@stats.ActiveCodices</span>
+            </div>
+            <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
+            <div>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Downloads</span>
+                <span class="text-base font-bold text-[#C8963E]">@stats.TotalDownloads</span>
+            </div>
+            <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
+            <div>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Access</span>
+                <span class="text-base font-bold text-[#EDE6D6]">Free & Open</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Catalog Hall -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- Controls Bar: Category Filters & Instant Search -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-6 border-b border-[#2E2A25]">
+        
+        <!-- Category Filter Pills -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none font-mono text-xs">
+            @foreach (var cat in new[] { "All", "Philosophy", "Systems", "History", "General" })
+            {
+                <button type="button"
+                        @onclick="() => SelectCategory(cat)"
+                        class='px-4 py-2 rounded-sm uppercase tracking-wider transition-all whitespace-nowrap @(selectedCategory == cat ? "bg-[#C8963E] text-[#0F0E0D] font-bold shadow-md" : "bg-[#181614] border border-[#2E2A25] text-[#9E9587] hover:border-[#8C6D3F] hover:text-[#EDE6D6]")'>
+                    @cat
+                </button>
+            }
+        </div>
+
+        <!-- Search Bar & Action Buttons -->
+        <div class="flex items-center gap-3 flex-1 lg:max-w-md">
+            <div class="relative flex-1">
+                <svg class="w-4 h-4 text-[#9E9587] absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text"
+                       @bind="searchQuery"
+                       @bind:event="oninput"
+                       @bind:after="ApplySearch"
+                       placeholder="Search books by title, author, or keyword..."
+                       class="w-full text-xs pl-9 pr-8 py-2.5 rounded-sm bg-[#181614] border border-[#2E2A25] text-[#EDE6D6] placeholder-[#9E9587] focus:border-[#C8963E] focus:outline-none transition-colors" />
+                @if (!string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    <button type="button"
+                            @onclick="ClearSearch"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9E9587] hover:text-[#EDE6D6]">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                }
+            </div>
+
+            <!-- Upload Book Button -->
+            <button type="button"
+                    @onclick="TriggerInscribeTome"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm whitespace-nowrap">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Upload Book</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Search or Category Notice -->
+    @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedCategory != "All")
+    {
+        <div class="flex items-center justify-between mb-6 text-xs font-mono text-[#9E9587]">
+            <span>
+                Showing results for
+                @if (selectedCategory != "All") { <span class="text-[#C8963E] font-semibold">@selectedCategory</span> }
+                @if (!string.IsNullOrWhiteSpace(searchQuery)) { <span> matching "<strong class="text-[#EDE6D6]">@searchQuery</strong>"</span> }
+                (@books.Count books found)
+            </span>
+            <button type="button"
+                    @onclick="ResetFilters"
+                    class="text-[#C8963E] hover:underline uppercase text-[11px]">
+                Reset Filters
+            </button>
+        </div>
+    }
+
+    <!-- Books Alcove Grid -->
+    @if (isLoading)
+    {
+        <div class="py-20 text-center">
+            <div class="w-8 h-8 mx-auto mb-3 border-2 border-[#C8963E] border-t-transparent rounded-full animate-spin"></div>
+            <p class="font-mono text-xs text-[#9E9587] uppercase tracking-widest">
+                Loading books from archive...
+            </p>
+        </div>
+    }
+    else if (books.Count == 0)
+    {
+        <div class="max-w-md mx-auto my-16 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center">
+            <div class="w-12 h-12 mx-auto mb-3 rounded-full border border-[#2E2A25] flex items-center justify-center text-[#9E9587] bg-[#0F0E0D]">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+            </div>
+            <h3 class="font-serif text-xl font-bold text-[#EDE6D6] mb-1">
+                No Books Found
+            </h3>
+            <p class="text-xs text-[#9E9587] mb-4">
+                No active books match the selected filter or search query.
+            </p>
+            <button type="button"
+                    @onclick="ResetFilters"
+                    class="px-4 py-2 text-xs font-mono uppercase bg-[#0F0E0D] border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
+                View All Books
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach (var book in books)
+            {
+                <BookCard Book="book"
+                          IsAuditor="@AuthState.IsAuditor"
+                          OnRead="OpenReader"
+                          OnDownload="DownloadBook"
+                          OnEdit="OpenEditModal"
+                          OnSeal="PromptSeal" />
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal Components -->
+<CodexReaderModal Book="selectedBookForReader"
+                  IsOpen="isReaderOpen"
+                  OnClose="() => isReaderOpen = false"
+                  OnDownload="DownloadBook"
+                  OnRequestSignIn="() => isAuthModalOpen = true" />
+
+<UploadTomeDrawer IsOpen="isUploadDrawerOpen"
+                  OnClose="() => isUploadDrawerOpen = false"
+                  OnTomeInscribed="HandleTomeInscribed" />
+
+<AuthModal IsOpen="isAuthModalOpen"
+           OnClose="() => isAuthModalOpen = false"
+           OnAuthenticated="HandleAuthenticated" />
+
+<EditTomeModal IsOpen="isEditModalOpen"
+               Book="bookToEdit"
+               OnClose="() => isEditModalOpen = false"
+               OnSaved="HandleBookUpdated" />
+
+<!-- Delete Confirmation Modal -->
+@if (isSealPromptOpen && bookToSeal != null)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-in">
+        <div class="w-full max-w-md bg-[#181614] border border-[#9E332D] rounded-sm p-6 space-y-4 candle-glow">
+            <div class="flex items-center gap-2 text-[#9E332D]">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
+                    Delete Book
+                </h3>
+            </div>
+            
+            <p class="text-xs text-[#9E9587]">
+                Deleting <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> will remove it from the public catalog. You can restore it at any time from the Site Audit page.
+            </p>
+
+            <div>
+                <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">
+                    Reason for deletion:
+                </label>
+                <input type="text"
+                       @bind="sealReason"
+                       placeholder="e.g. Content moderation review"
+                       class="w-full text-xs p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#9E332D] focus:outline-none" />
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3">
+                <button type="button"
+                        @onclick="() => isSealPromptOpen = false"
+                        class="px-3 py-1.5 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">
+                    Cancel
+                </button>
+                <button type="button"
+                        @onclick="ConfirmSealBook"
+                        class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm transition-all shadow-md">
+                    Delete Book
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Book> books = new();
+    private (int TotalBooks, int ActiveCodices, int TotalDownloads, int TotalLogs) stats = (0, 0, 0, 0);
+    private string selectedCategory = "All";
+    private string searchQuery = "";
+    private bool isLoading = true;
+
+    // Modals state
+    private bool isReaderOpen = false;
+    private Book? selectedBookForReader;
+
+    private bool isUploadDrawerOpen = false;
+    private bool isAuthModalOpen = false;
+
+    private bool isEditModalOpen = false;
+    private Book? bookToEdit;
+
+    private bool isSealPromptOpen = false;
+    private Book? bookToSeal;
+    private string sealReason = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.OnChange += HandleAuthStateChange;
+        await LoadCatalogAsync();
+    }
+
+    private void HandleAuthStateChange()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadCatalogAsync()
+    {
+        isLoading = true;
+        try
+        {
+            // Map "General" display label to "Codex" underlying database value
+            var dbCategory = selectedCategory == "General" ? "Codex" : selectedCategory;
+            books = await ArchiveService.GetBooksAsync(dbCategory, searchQuery);
+            stats = await ArchiveService.GetArchiveStatsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading catalog: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SelectCategory(string category)
+    {
+        selectedCategory = category;
+        await LoadCatalogAsync();
+    }
+
+    private async Task ApplySearch()
+    {
+        await LoadCatalogAsync();
+    }
+
+    private async Task ClearSearch()
+    {
+        searchQuery = "";
+        await LoadCatalogAsync();
+    }
+
+    private async Task ResetFilters()
+    {
+        selectedCategory = "All";
+        searchQuery = "";
+        await LoadCatalogAsync();
+    }
+
+    private void OpenReader(Book book)
+    {
+        selectedBookForReader = book;
+        isReaderOpen = true;
+    }
+
+    private async Task DownloadBook(Book book)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(book.FileUrl) && 
+                (book.FileUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) || 
+                 book.FileUrl.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)))
+            {
+                await JSRuntime.InvokeVoidAsync("MasyafArchive.downloadFromUrl", book.FileUrl, $"{SanitizeFileName(book.Title)}.pdf");
+            }
+            else
+            {
+                var manuscript = $@"================================================================================
+THE MASYAF ARCHIVE • DIGITAL MANUSCRIPT
+Open-Source Digital Library
+================================================================================
+
+TITLE:       {book.Title}
+AUTHOR:      {book.Author}
+CATEGORY:    {(book.Category == "Codex" ? "General" : book.Category)}
+UPLOADED BY: {book.UploadedBy}
+CATALOG ID:  #{book.Id:D4}
+DATE:        {book.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC
+
+--------------------------------------------------------------------------------
+DESCRIPTION:
+{book.Synopsis}
+--------------------------------------------------------------------------------
+
+{book.ContentText}
+
+================================================================================
+THE MASYAF ARCHIVE — FREE TO READ AND DOWNLOAD WITHOUT AN ACCOUNT
+================================================================================";
+
+                var fileName = $"{SanitizeFileName(book.Title)}.txt";
+                await JSRuntime.InvokeVoidAsync("MasyafArchive.downloadTextFile", fileName, manuscript);
+            }
+
+            // Increment in Supabase
+            await ArchiveService.IncrementDownloadCountAsync(book.Id);
+            book.DownloadCount += 1;
+            stats = (stats.TotalBooks, stats.ActiveCodices, stats.TotalDownloads + 1, stats.TotalLogs);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Download failed: {ex.Message}");
+        }
+    }
+
+    private void TriggerInscribeTome()
+    {
+        if (AuthState.IsAuthenticated)
+        {
+            isUploadDrawerOpen = true;
+        }
+        else
+        {
+            isAuthModalOpen = true;
+        }
+    }
+
+    private async Task HandleTomeInscribed(Book newBook)
+    {
+        await LoadCatalogAsync();
+    }
+
+    private void HandleAuthenticated()
+    {
+        isAuthModalOpen = false;
+        StateHasChanged();
+    }
+
+    private void OpenEditModal(Book book)
+    {
+        bookToEdit = book;
+        isEditModalOpen = true;
+    }
+
+    private async Task HandleBookUpdated(Book updated)
+    {
+        isEditModalOpen = false;
+        await LoadCatalogAsync();
+    }
+
+    private void PromptSeal(Book book)
+    {
+        bookToSeal = book;
+        sealReason = "Content moderation";
+        isSealPromptOpen = true;
+    }
+
+    private async Task ConfirmSealBook()
+    {
+        if (bookToSeal == null || !AuthState.IsAuditor) return;
+
+        var user = AuthState.CurrentUser!;
+        var success = await ArchiveService.SoftDeleteBookAsync(bookToSeal.Id, user.Username, user.Role, sealReason);
+        if (success)
+        {
+            isSealPromptOpen = false;
+            bookToSeal = null;
+            await LoadCatalogAsync();
+        }
+    }
+
+    private string SanitizeFileName(string name)
+    {
+        var invalid = System.IO.Path.GetInvalidFileNameChars();
+        return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c)).Replace(" ", "_");
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= HandleAuthStateChange;
+    }
+}

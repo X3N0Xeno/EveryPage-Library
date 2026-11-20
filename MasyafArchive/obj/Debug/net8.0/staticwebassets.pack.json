@@ -1,0 +1,69 @@
+{
+  "Files": [
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\bin\\Debug\\net8.0\\wwwroot\\_framework\\blazor.webassembly.js",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\obj\\Debug\\net8.0\\compressed\\oz0vt5wanj.gz",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js.gz"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\obj\\Debug\\net8.0\\scopedcss\\bundle\\MasyafArchive.styles.css",
+      "PackagePath": "staticwebassets\\MasyafArchive.styles.css"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\appsettings.json",
+      "PackagePath": "staticwebassets\\appsettings.json"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\css\\app.css",
+      "PackagePath": "staticwebassets\\css\\app.css"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\css\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\favicon.svg",
+      "PackagePath": "staticwebassets\\favicon.svg"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\icon-192.png",
+      "PackagePath": "staticwebassets\\icon-192.png"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "Z:\\L23X17W10\\Masyaf Archive\\MasyafArchive\\wwwroot\\sample-data\\weather.json",
+      "PackagePath": "staticwebassets\\sample-data\\weather.json"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.MasyafArchive.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.MasyafArchive.props",
+      "PackagePath": "build\\MasyafArchive.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.MasyafArchive.props",
+      "PackagePath": "buildMultiTargeting\\MasyafArchive.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.MasyafArchive.props",
+      "PackagePath": "buildTransitive\\MasyafArchive.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
