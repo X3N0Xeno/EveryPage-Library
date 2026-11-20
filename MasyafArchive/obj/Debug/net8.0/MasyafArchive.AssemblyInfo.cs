@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MasyafArchive")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ad1c555d0eaa25b648b9f975341867cb83db20e")]
 [assembly: System.Reflection.AssemblyProductAttribute("MasyafArchive")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MasyafArchive")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

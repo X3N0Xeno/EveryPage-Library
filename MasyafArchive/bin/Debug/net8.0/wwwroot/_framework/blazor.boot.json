@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "MasyafArchive",
   "resources": {
-    "hash": "sha256-yXTszFt7iqU6O7dC2mHSHvyxGCjSFwXL2gwSN036ZJA=",
+    "hash": "sha256-sTSmOZ1fzGkAukeNoSznH5R+xcVHJ5+ORug8cE8e0sM=",
     "jsModuleNative": {
       "dotnet.native.8.0.8.93i67mqfmb.js": "sha256-juC5sA7gHTLXFEhAKgdM2/RavswpwCtDfjYGsAz2FXg="
     },
@@ -225,10 +225,10 @@
       "mscorlib.wasm": "sha256-Gz8PyW2/fwihe5ul81OwmRUrU71r+KtbyRw6xlOGD+Q=",
       "netstandard.wasm": "sha256-jMTqIQzoDS810lyhZpMO5eEC36EzntXqSVn+2qwkOMQ=",
       "System.Private.CoreLib.wasm": "sha256-NFj5WE5VLP2LptZIRJCUIc1AMk06FmxpsSILfPISwAw=",
-      "MasyafArchive.wasm": "sha256-WvOyvqT7xYlU2WExyEfvdKPfedBQMxihOasdvR/lLDs="
+      "MasyafArchive.wasm": "sha256-FiEQDBiuOqs/IXzTzexM3QWnvUADJnxFTrsx6IbADxE="
     },
     "pdb": {
-      "MasyafArchive.pdb": "sha256-XQk0LHsxRepSnfFzt/2O6zpx+fRjSdaOGMM3s3ZCfCI="
+      "MasyafArchive.pdb": "sha256-F1F1dZDFgmMjyGMdVMZkA860GgH5rGuaPOldWSCwNo8="
     }
   },
   "cacheBootResources": true,

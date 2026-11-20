@@ -15,7 +15,7 @@
                 <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-[#C8963E]"></span>
                     <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
-                        Moderate Tome #@EditingBook.Id.ToString("D4")
+                        Edit Book #@EditingBook.Id.ToString("D4")
                     </h3>
                 </div>
                 <button type="button" @onclick="Close" class="text-[#9E9587] hover:text-[#EDE6D6] p-1">
@@ -36,7 +36,7 @@
                 }
 
                 <div>
-                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Title</label>
+                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Book Title</label>
                     <input type="text" @bind="EditingBook.Title" required disabled="@isSaving"
                            class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none" />
                 </div>
@@ -51,7 +51,7 @@
                         <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Category</label>
                         <select @bind="EditingBook.Category" disabled="@isSaving"
                                 class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none">
-                            <option value="Codex">Codex</option>
+                            <option value="Codex">General</option>
                             <option value="Philosophy">Philosophy</option>
                             <option value="Systems">Systems</option>
                             <option value="History">History</option>
@@ -60,13 +60,13 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Synopsis</label>
+                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Description</label>
                     <textarea @bind="EditingBook.Synopsis" rows="2" required disabled="@isSaving"
                               class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none"></textarea>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Manuscript Text</label>
+                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Book Content (Readable Text)</label>
                     <textarea @bind="EditingBook.ContentText" rows="6" required disabled="@isSaving"
                               class="w-full text-xs font-mono p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none"></textarea>
                 </div>
@@ -78,7 +78,7 @@
                     </button>
                     <button type="submit" disabled="@isSaving"
                             class="px-5 py-2 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] disabled:opacity-50 text-[#0F0E0D] rounded-sm transition-all">
-                        @(isSaving ? "Updating Ledger..." : "Save Modifications")
+                        @(isSaving ? "Saving Changes..." : "Save Changes")
                     </button>
                 </div>
             </form>
@@ -142,7 +142,7 @@
             }
             else
             {
-                errorMessage = "Failed to update tome metadata in the database.";
+                errorMessage = "Failed to update book.";
             }
         }
         catch (Exception ex)

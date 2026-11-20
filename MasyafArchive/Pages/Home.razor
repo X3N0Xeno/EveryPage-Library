@@ -340,6 +340,7 @@
             }
             else
             {
+                var catDisplay = book.Category == "Codex" ? "General" : book.Category;
                 var manuscript = $@"================================================================================
 THE MASYAF ARCHIVE • DIGITAL MANUSCRIPT
 Open-Source Digital Library
@@ -347,7 +348,7 @@ Open-Source Digital Library
 
 TITLE:       {book.Title}
 AUTHOR:      {book.Author}
-CATEGORY:    {(book.Category == "Codex" ? "General" : book.Category)}
+CATEGORY:    {catDisplay}
 UPLOADED BY: {book.UploadedBy}
 CATALOG ID:  #{book.Id:D4}
 DATE:        {book.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC

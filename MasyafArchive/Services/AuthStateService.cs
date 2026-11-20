@@ -52,7 +52,7 @@ public class AuthStateService
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(passcode))
         {
-            return (false, "Both scholar name and passcode are required to unlock the archives.");
+            return (false, "Both username and password are required.");
         }
 
         try
@@ -65,7 +65,7 @@ public class AuthStateService
             var scholar = response.Models.FirstOrDefault();
             if (scholar == null)
             {
-                return (false, "Unrecognized seal. Check your scholar moniker and passcode.");
+                return (false, "Invalid username or password.");
             }
 
             CurrentUser = scholar;
@@ -78,16 +78,16 @@ public class AuthStateService
                 action: "SCHOLAR_SIGN_IN",
                 targetType: "Sanctuary Gate",
                 targetTitle: scholar.Role.ToUpperInvariant(),
-                details: $"Scholar {scholar.Username} entered the library sanctuary with {scholar.Role} privileges."
+                details: $"User {scholar.Username} signed in as {scholar.Role}."
             );
 
             NotifyStateChanged();
-            return (true, $"Welcome, {scholar.Username} ({scholar.Role}).");
+            return (true, $"Welcome, {scholar.Username}.");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[AuthStateService] Sign-in error: {ex.Message}");
-            return (false, $"Library gate verification failed: {ex.Message}");
+            return (false, $"Sign-in failed: {ex.Message}");
         }
     }
 
@@ -95,17 +95,17 @@ public class AuthStateService
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(passcode))
         {
-            return (false, "A moniker and passcode are required to inscribe a new scholar.");
+            return (false, "Both username and password are required.");
         }
 
         var trimmedUsername = username.Trim();
         if (trimmedUsername.Length < 3)
         {
-            return (false, "Scholar moniker must contain at least 3 characters.");
+            return (false, "Username must contain at least 3 characters.");
         }
         if (passcode.Length < 4)
         {
-            return (false, "Passcode must contain at least 4 characters.");
+            return (false, "Password must contain at least 4 characters.");
         }
 
         try
@@ -116,7 +116,7 @@ public class AuthStateService
 
             if (existingResponse.Models.Any())
             {
-                return (false, $"The scholar moniker '{trimmedUsername}' has already been inscribed.");
+                return (false, $"The username '{trimmedUsername}' is already taken.");
             }
 
             var newScholar = new Scholar
@@ -139,17 +139,17 @@ public class AuthStateService
                 actorRole: created.Role,
                 action: "SCHOLAR_REGISTER",
                 targetType: "Sanctuary Registry",
-                targetTitle: "New Scribe",
-                details: $"New Scribe '{created.Username}' inscribed into the Masyaf Archive rolls."
+                targetTitle: "New User",
+                details: $"New contributor account '{created.Username}' registered."
             );
 
             NotifyStateChanged();
-            return (true, $"Scribe {created.Username} inscribed successfully into the Masyaf rolls.");
+            return (true, $"Account for {created.Username} created successfully.");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[AuthStateService] Register error: {ex.Message}");
-            return (false, $"Failed to inscribe new scholar: {ex.Message}");
+            return (false, $"Failed to create account: {ex.Message}");
         }
     }
 

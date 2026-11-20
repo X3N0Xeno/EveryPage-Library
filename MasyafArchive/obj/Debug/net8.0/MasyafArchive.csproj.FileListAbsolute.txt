@@ -1114,3 +1114,4 @@ Z:\L23X17W10\Masyaf Archive\MasyafArchive\obj\Debug\net8.0\MasyafArchive.dll
 Z:\L23X17W10\Masyaf Archive\MasyafArchive\obj\Debug\net8.0\refint\MasyafArchive.dll
 Z:\L23X17W10\Masyaf Archive\MasyafArchive\obj\Debug\net8.0\MasyafArchive.pdb
 Z:\L23X17W10\Masyaf Archive\MasyafArchive\obj\Debug\net8.0\ref\MasyafArchive.dll
+Z:\L23X17W10\Masyaf Archive\MasyafArchive\obj\Debug\net8.0\MasyafArchive.sourcelink.json

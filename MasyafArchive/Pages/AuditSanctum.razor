@@ -10,7 +10,7 @@
 
     @if (!AuthState.IsAuthenticated || !AuthState.IsAuditor)
     {
-        <!-- Locked Sanctum Gate -->
+        <!-- Restricted Access Gate -->
         <div class="max-w-xl mx-auto my-16 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center candle-glow">
             <div class="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#9E332D] flex items-center justify-center text-[#9E332D] bg-[#0F0E0D]">
                 <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -20,25 +20,25 @@
             </div>
             
             <h2 class="font-serif text-3xl font-bold text-[#EDE6D6] mb-2">
-                The Sealed Sanctum
+                Auditor Access Required
             </h2>
             <p class="text-sm font-sans text-[#9E9587] leading-relaxed mb-6">
-                The audit ledgers and moderation seals are guarded by the Mentors of the Creed. Only scholars bearing the <span class="text-[#9E332D] font-mono font-semibold">auditor</span> seal may enter this chamber.
+                This area contains system audit logs and moderation controls. Only accounts with the <span class="text-[#9E332D] font-mono font-semibold">auditor</span> role may enter.
             </p>
 
             <div class="p-4 rounded-sm border border-[#2E2A25] bg-[#0F0E0D] mb-6">
                 <span class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-2">
-                    Evaluator Verification Bypass:
+                    One-Click Demo Sign In:
                 </span>
                 <button type="button"
                         @onclick="SignInAsAltair"
                         class="w-full py-2.5 px-4 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-md">
-                    Unlock with Altaïr Credentials (Auditor)
+                    Demo: Sign in as Auditor (Altair)
                 </button>
             </div>
 
             <a href="/" class="text-xs font-mono uppercase tracking-wider text-[#9E9587] hover:text-[#EDE6D6]">
-                Return to the Library Hall
+                Return to Browse Books
             </a>
         </div>
     }
@@ -49,17 +49,17 @@
             <div>
                 <div class="flex items-center gap-2 mb-1">
                     <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono tracking-widest uppercase bg-[#9E332D]/20 border border-[#9E332D] text-[#EDE6D6]">
-                        Auditor Authority
+                        Auditor Role
                     </span>
                     <span class="text-xs font-mono text-[#9E9587]">
-                        Guardian: <strong class="text-[#C8963E]">@AuthState.CurrentUser?.Username</strong>
+                        User: <strong class="text-[#C8963E]">@AuthState.CurrentUser?.Username</strong>
                     </span>
                 </div>
                 <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#EDE6D6]">
-                    The Auditor's Sanctum
+                    Site Audit & Moderation
                 </h1>
                 <p class="text-sm text-[#9E9587] mt-1 font-sans">
-                    Chronological verification ledger and archive moderation seals.
+                    Chronological audit log and book moderation controls.
                 </p>
             </div>
 
@@ -68,31 +68,31 @@
                 <button type="button"
                         @onclick='() => activeTab = "ledger"'
                         class='px-4 py-2 uppercase tracking-wider rounded-sm transition-all @(activeTab == "ledger" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "text-[#9E9587] hover:text-[#EDE6D6]")'>
-                    Audit Ledger (@auditLogs.Count)
+                    Audit Log (@auditLogs.Count)
                 </button>
                 <button type="button"
                         @onclick='() => activeTab = "moderation"'
                         class='px-4 py-2 uppercase tracking-wider rounded-sm transition-all @(activeTab == "moderation" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "text-[#9E9587] hover:text-[#EDE6D6]")'>
-                    Archive Moderation (@activeBooks.Count Active, @sealedBooks.Count Sealed)
+                    Book Moderation (@activeBooks.Count Active, @sealedBooks.Count Deleted)
                 </button>
             </div>
         </div>
 
         @if (activeTab == "ledger")
         {
-            <!-- AUDIT LEDGER VIEW -->
+            <!-- AUDIT LOG VIEW -->
             <div class="space-y-4">
                 
                 <!-- Action Filter Bar -->
                 <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#181614] border border-[#2E2A25] rounded-sm">
                     <div class="flex items-center gap-2 flex-wrap text-xs font-mono">
                         <span class="text-[#9E9587] uppercase">Filter Action:</span>
-                        @foreach (var act in new[] { "All", "INSCRIBE_TOME", "SEAL_TOME", "UNSEAL_TOME", "EDIT_TOME_METADATA", "INSCRIBE_MARGIN_NOTE", "SEAL_MARGIN_NOTE", "SCHOLAR_SIGN_IN" })
+                        @foreach (var filter in actionFilters)
                         {
                             <button type="button"
-                                    @onclick="() => FilterByAction(act)"
-                                    class='px-2.5 py-1 rounded-sm border uppercase text-[11px] transition-all @(selectedAction == act ? "bg-[#C8963E] text-[#0F0E0D] border-[#C8963E] font-bold" : "bg-[#0F0E0D] border-[#2E2A25] text-[#9E9587] hover:text-[#EDE6D6]")'>
-                                @act
+                                    @onclick="() => FilterByAction(filter.Key)"
+                                    class='px-2.5 py-1 rounded-sm border uppercase text-[11px] transition-all @(selectedAction == filter.Key ? "bg-[#C8963E] text-[#0F0E0D] border-[#C8963E] font-bold" : "bg-[#0F0E0D] border-[#2E2A25] text-[#9E9587] hover:text-[#EDE6D6]")'>
+                                @filter.Value
                             </button>
                         }
                     </div>
@@ -105,7 +105,7 @@
                             <polyline points="1 20 1 14 7 14"></polyline>
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                         </svg>
-                        Refresh Ledger
+                        Refresh Log
                     </button>
                 </div>
 
@@ -116,7 +116,7 @@
                             <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] tracking-wider text-[11px]">
                                 <tr>
                                     <th class="py-3 px-4">Timestamp (UTC)</th>
-                                    <th class="py-3 px-4">Scholar / Role</th>
+                                    <th class="py-3 px-4">User / Role</th>
                                     <th class="py-3 px-4">Action</th>
                                     <th class="py-3 px-4">Target</th>
                                     <th class="py-3 px-4">Details</th>
@@ -127,7 +127,7 @@
                                 {
                                     <tr>
                                         <td colspan="5" class="py-8 text-center text-xs text-[#9E9587]">
-                                            Unrolling parchment ledger...
+                                            Loading audit records...
                                         </td>
                                     </tr>
                                 }
@@ -135,7 +135,7 @@
                                 {
                                     <tr>
                                         <td colspan="5" class="py-8 text-center text-xs text-[#9E9587]">
-                                            No audit records found matching this criteria.
+                                            No audit records found matching this filter.
                                         </td>
                                     </tr>
                                 }
@@ -151,13 +151,13 @@
                                                 <div class="flex items-center gap-1.5 font-sans">
                                                     <span class="font-semibold text-[#EDE6D6]">@log.ActorName</span>
                                                     <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-sm uppercase @(log.ActorRole.Equals("auditor", StringComparison.OrdinalIgnoreCase) ? "bg-[#9E332D]/30 text-[#EDE6D6] border border-[#9E332D]" : "bg-[#2E2A25] text-[#9E9587]")">
-                                                        @log.ActorRole
+                                                        @(log.ActorRole.Equals("auditor", StringComparison.OrdinalIgnoreCase) ? "Auditor" : "Contributor")
                                                     </span>
                                                 </div>
                                             </td>
                                             <td class="py-3 px-4 whitespace-nowrap">
                                                 <span class="inline-block px-2 py-0.5 text-[10px] uppercase font-bold rounded-sm @GetActionBadgeClass(log.Action)">
-                                                    @log.Action
+                                                    @FormatActionLabel(log.Action)
                                                 </span>
                                             </td>
                                             <td class="py-3 px-4 text-[#C8963E] font-medium whitespace-nowrap">
@@ -177,22 +177,22 @@
         }
         else
         {
-            <!-- ARCHIVE MODERATION VIEW -->
+            <!-- BOOK MODERATION VIEW -->
             <div class="space-y-8">
                 
-                <!-- Section 1: Active Tomes Management -->
+                <!-- Section 1: Active Books Management -->
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
-                                Active Archive Catalog
+                                Active Books
                             </h3>
                             <p class="text-xs text-[#9E9587]">
-                                Tomes currently unsealed and accessible to all travelers.
+                                Books currently visible to all visitors in the library.
                             </p>
                         </div>
                         <span class="text-xs font-mono text-[#C8963E]">
-                            @activeBooks.Count Tomes Available
+                            @activeBooks.Count Active Books
                         </span>
                     </div>
 
@@ -205,9 +205,9 @@
                                         <th class="py-3 px-4">Title</th>
                                         <th class="py-3 px-4">Author</th>
                                         <th class="py-3 px-4">Category</th>
-                                        <th class="py-3 px-4">Inscribed By</th>
+                                        <th class="py-3 px-4">Uploaded By</th>
                                         <th class="py-3 px-4">Downloads</th>
-                                        <th class="py-3 px-4 text-right">Moderation Actions</th>
+                                        <th class="py-3 px-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-[#2E2A25]/60">
@@ -225,7 +225,7 @@
                                             </td>
                                             <td class="py-3 px-4">
                                                 <span class="px-2 py-0.5 font-mono text-[10px] uppercase rounded-sm border border-[#2E2A25] bg-[#0F0E0D] text-[#C8963E]">
-                                                    @book.Category
+                                                    @(book.Category == "Codex" ? "General" : book.Category)
                                                 </span>
                                             </td>
                                             <td class="py-3 px-4 text-[#9E9587]">
@@ -244,7 +244,7 @@
                                                     <button type="button"
                                                             @onclick="() => PromptSeal(book)"
                                                             class="px-2.5 py-1 text-[11px] font-mono uppercase border border-[#9E332D]/40 hover:border-[#9E332D] text-[#9E332D] hover:bg-[#9E332D]/10 rounded-sm transition-all">
-                                                        Seal Tome
+                                                        Delete
                                                     </button>
                                                 </div>
                                             </td>
@@ -260,29 +260,29 @@
                     <div class="sacred-divider-diamond"></div>
                 </div>
 
-                <!-- Section 2: Sealed Tomes Vault (Soft-Deleted & Recovery) -->
+                <!-- Section 2: Deleted Books (Soft-Deleted & Recovery) -->
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 rounded-full bg-[#9E332D]"></span>
                                 <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
-                                    The Sealed Vault (Soft-Deleted Tomes)
+                                    Deleted Books
                                 </h3>
                             </div>
                             <p class="text-xs text-[#9E9587]">
-                                Tomes placed in quarantine by Auditor decree. Can be restored to the catalog at any time.
+                                Books removed from the public catalog. You can restore any book at any time.
                             </p>
                         </div>
                         <span class="text-xs font-mono text-[#9E332D]">
-                            @sealedBooks.Count Sealed Tomes
+                            @sealedBooks.Count Deleted Books
                         </span>
                     </div>
 
                     @if (sealedBooks.Count == 0)
                     {
                         <div class="p-8 text-center bg-[#181614] border border-[#2E2A25] rounded-sm text-xs font-mono text-[#9E9587]">
-                            No tomes are currently sealed in the quarantine vault.
+                            No books are currently in the deleted list.
                         </div>
                     }
                     else
@@ -295,8 +295,8 @@
                                             <th class="py-3 px-4">ID</th>
                                             <th class="py-3 px-4">Title</th>
                                             <th class="py-3 px-4">Author</th>
-                                            <th class="py-3 px-4">Sealed Date (UTC)</th>
-                                            <th class="py-3 px-4 text-right">Sanctuary Action</th>
+                                            <th class="py-3 px-4">Deleted Date (UTC)</th>
+                                            <th class="py-3 px-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-[#2E2A25]/60">
@@ -323,7 +323,7 @@
                                                             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
                                                             <path d="M3 3v5h5"></path>
                                                         </svg>
-                                                        Unseal & Restore
+                                                        Restore
                                                     </button>
                                                 </td>
                                             </tr>
@@ -351,21 +351,21 @@
                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
                 <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
-                    Apply Auditor Seal
+                    Delete Book
                 </h3>
             </div>
             
             <p class="text-xs text-[#9E9587]">
-                Sealing <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> will remove it from the public library hall into the Sealed Vault.
+                Deleting <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> will remove it from the public catalog. You can restore it at any time.
             </p>
 
             <div>
                 <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">
-                    Auditor Reason (Inscribed into Audit Ledger):
+                    Reason for deletion:
                 </label>
                 <input type="text"
                        @bind="sealReason"
-                       placeholder="e.g. Manuscript under doctrinal audit"
+                       placeholder="e.g. Content moderation review"
                        class="w-full text-xs p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#9E332D] focus:outline-none" />
             </div>
 
@@ -378,14 +378,14 @@
                 <button type="button"
                         @onclick="ConfirmSealBook"
                         class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm transition-all shadow-md">
-                    Apply Seal
+                    Confirm Delete
                 </button>
             </div>
         </div>
     </div>
 }
 
-<!-- Edit Tome Modal -->
+<!-- Edit Book Modal -->
 <EditTomeModal IsOpen="isEditModalOpen"
                Book="bookToEdit"
                OnClose="() => isEditModalOpen = false"
@@ -406,6 +406,18 @@
 
     private bool isEditModalOpen = false;
     private Book? bookToEdit;
+
+    private readonly Dictionary<string, string> actionFilters = new()
+    {
+        { "All", "All" },
+        { "INSCRIBE_TOME", "Uploads" },
+        { "SEAL_TOME", "Deletions" },
+        { "UNSEAL_TOME", "Restores" },
+        { "EDIT_TOME_METADATA", "Edits" },
+        { "INSCRIBE_MARGIN_NOTE", "Comments" },
+        { "SEAL_MARGIN_NOTE", "Deleted Notes" },
+        { "SCHOLAR_SIGN_IN", "Sign Ins" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -460,7 +472,7 @@
     private void PromptSeal(Book book)
     {
         bookToSeal = book;
-        sealReason = "Archival moderation review";
+        sealReason = "Content moderation review";
         isSealPromptOpen = true;
     }
 
@@ -507,6 +519,20 @@
         await AuthState.SignInAsync("Altair", "masyaf1191");
         await LoadDataAsync();
     }
+
+    private string FormatActionLabel(string action) => action switch
+    {
+        "INSCRIBE_TOME" => "Upload Book",
+        "SEAL_TOME" => "Delete Book",
+        "UNSEAL_TOME" => "Restore Book",
+        "EDIT_TOME_METADATA" => "Edit Book",
+        "INSCRIBE_MARGIN_NOTE" => "Post Comment",
+        "SEAL_MARGIN_NOTE" => "Delete Comment",
+        "SCHOLAR_SIGN_IN" => "Sign In",
+        "SCHOLAR_REGISTER" => "Register",
+        "SCHOLAR_SIGN_OUT" => "Sign Out",
+        _ => action
+    };
 
     private string GetActionBadgeClass(string action) => action switch
     {
