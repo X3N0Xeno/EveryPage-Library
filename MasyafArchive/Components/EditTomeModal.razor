@@ -5,51 +5,27 @@
 
 @if (IsOpen && EditingBook != null)
 {
-    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-in"
-         tabindex="-1"
-         @onkeydown="HandleKeyDown">
-
-        <div class="relative w-full max-w-xl bg-[#181614] border border-[#2E2A25] shadow-2xl rounded-sm overflow-hidden candle-glow">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2E2A25] bg-[#0F0E0D]">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-[#C8963E]"></span>
-                    <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
-                        Edit Catalog Record #@EditingBook.Id.ToString("D4")
-                    </h3>
-                </div>
-                <button type="button" @onclick="Close" class="text-[#9E9587] hover:text-[#EDE6D6] p-1">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4 animate-modal-in"
+         tabindex="-1" @onkeydown="HandleKeyDown">
+        <div class="relative w-full max-w-xl bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm overflow-hidden text-[#1C1917]">
+            <div class="flex items-center justify-between px-6 py-4 border-b-2 border-[#1C1917] bg-[#F4C430]">
+                <h3 class="font-comic text-xl font-bold">Edit Index Card #@EditingBook.Id.ToString("D4")</h3>
+                <button type="button" @onclick="Close" class="ink-btn px-2 py-0.5 text-xs font-mono font-bold bg-[#FFFDF7] rounded-sm">&#x2715;</button>
             </div>
 
             <form @onsubmit="SaveTome" class="p-6 space-y-4">
-                @if (!string.IsNullOrWhiteSpace(errorMessage))
-                {
-                    <div class="p-3 text-xs font-mono bg-[#9E332D]/10 border border-[#9E332D] text-[#EDE6D6]">
-                        @errorMessage
-                    </div>
-                }
-
                 <div>
-                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Book Title</label>
-                    <input type="text" @bind="EditingBook.Title" required disabled="@isSaving"
-                           class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none" />
+                    <label class="block text-xs font-mono font-bold uppercase mb-1">Book Title</label>
+                    <input type="text" @bind="EditingBook.Title" required class="w-full text-base p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]" />
                 </div>
-
                 <div>
-                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Author</label>
-                    <input type="text" @bind="EditingBook.Author" required disabled="@isSaving"
-                           class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none" />
+                    <label class="block text-xs font-mono font-bold uppercase mb-1">Author</label>
+                    <input type="text" @bind="EditingBook.Author" required class="w-full text-base p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]" />
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Genre</label>
-                        <select @bind="EditingBook.Category" disabled="@isSaving"
-                                class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none">
+                        <label class="block text-xs font-mono font-bold uppercase mb-1">Bookshelf / Genre</label>
+                        <select @bind="EditingBook.Category" class="w-full text-base p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]">
                             @foreach (var genre in BookGenres.Selectable)
                             {
                                 <option value="@genre">@genre</option>
@@ -57,27 +33,18 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Year or Era</label>
-                        <input type="text" @bind="EditingBook.PublicationYear" disabled="@isSaving"
-                               placeholder="e.g., 1890 or 2026"
-                               class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none" />
+                        <label class="block text-xs font-mono font-bold uppercase mb-1">Year</label>
+                        <input type="text" @bind="EditingBook.PublicationYear" class="w-full text-base p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]" />
                     </div>
                 </div>
-
                 <div>
-                    <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Description</label>
-                    <textarea @bind="EditingBook.Synopsis" rows="4" disabled="@isSaving"
-                              class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none"></textarea>
+                    <label class="block text-xs font-mono font-bold uppercase mb-1">Description</label>
+                    <textarea @bind="EditingBook.Synopsis" rows="3" class="w-full text-base p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]"></textarea>
                 </div>
-
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#2E2A25]">
-                    <button type="button" @onclick="Close" disabled="@isSaving"
-                            class="px-4 py-2 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">
-                        Cancel
-                    </button>
-                    <button type="submit" disabled="@isSaving"
-                            class="px-5 py-2 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] disabled:opacity-50 text-[#0F0E0D] rounded-sm transition-all">
-                        @(isSaving ? "Saving..." : "Save Metadata")
+                <div class="flex items-center justify-end gap-3 pt-3 border-t-2 border-dashed border-[#1C1917]/25">
+                    <button type="button" @onclick="Close" class="ink-btn px-4 py-1.5 text-xs font-mono font-bold uppercase bg-[#FFFDF7] rounded-sm">Cancel</button>
+                    <button type="submit" disabled="@isSaving" class="ink-btn px-5 py-1.5 text-xs font-comic font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">
+                        @(isSaving ? "Saving..." : "Save Card")
                     </button>
                 </div>
             </form>
@@ -93,7 +60,6 @@
 
     private Book? EditingBook;
     private bool isSaving = false;
-    private string errorMessage = "";
 
     protected override void OnParametersSet()
     {
@@ -114,43 +80,19 @@
     private async Task SaveTome()
     {
         if (EditingBook == null || !AuthState.IsAuditor) return;
-
         isSaving = true;
-        errorMessage = "";
-
         try
         {
             var user = AuthState.CurrentUser!;
-            var ok = await ArchiveService.UpdateBookAsync(EditingBook, user.Username, user.Role);
-            if (ok)
+            if (await ArchiveService.UpdateBookAsync(EditingBook, user.Username, user.Role))
             {
                 await OnSaved.InvokeAsync(EditingBook);
                 await Close();
             }
-            else
-            {
-                errorMessage = "Failed to update book metadata.";
-            }
         }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-        }
-        finally
-        {
-            isSaving = false;
-        }
+        finally { isSaving = false; }
     }
 
-    private async Task Close()
-    {
-        isSaving = false;
-        errorMessage = "";
-        await OnClose.InvokeAsync();
-    }
-
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape") await Close();
-    }
+    private async Task Close() { isSaving = false; await OnClose.InvokeAsync(); }
+    private async Task HandleKeyDown(KeyboardEventArgs e) { if (e.Key == "Escape") await Close(); }
 }

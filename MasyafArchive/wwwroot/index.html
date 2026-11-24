@@ -1,17 +1,17 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EveryPage Library — Everything Humanity Has Written, Open to Everyone</title>
+    <title>EveryPage Library &mdash; Everything Humanity Has Written, Open to Everyone</title>
     <meta name="description" content="EveryPage Library is a free, open digital library. Search community PDF uploads, Project Gutenberg and Open Library, then read online or download directly." />
     <base href="/" />
 
-    <!-- Google Fonts: Cormorant Garamond, Plus Jakarta Sans, JetBrains Mono -->
+    <!-- Handwritten Comic, Storybook Serif & Typewriter Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,500;0,700;1,500&family=Patrick+Hand&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,24 +20,20 @@
             theme: {
                 extend: {
                     colors: {
-                        basalt: '#0F0E0D',
-                        stoneSurface: '#181614',
-                        stoneElevated: '#201E1A',
-                        limestoneBorder: '#2E2A25',
-                        limestoneHover: '#8C6D3F',
-                        parchment: '#EDE6D6',
-                        sandstone: '#9E9587',
-                        candleGold: '#C8963E',
-                        candleGoldHover: '#DDA84B',
-                        crimsonSeal: '#9E332D',
-                        parchmentBg: '#F5EEDB',
-                        parchmentInk: '#262019',
-                        parchmentBorder: '#D8CCA8'
+                        paper: '#FAF6EC',
+                        cardPaper: '#FFFDF7',
+                        notePaper: '#F2EAD8',
+                        ink: '#1C1917',
+                        pencil: '#57534E',
+                        doghouseRed: '#D93829',
+                        woodstockYellow: '#F4C430',
+                        skyBlue: '#6BA4B8'
                     },
                     fontFamily: {
-                        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace']
+                        hand: ['"Patrick Hand"', 'cursive', 'sans-serif'],
+                        comic: ['"Architects Daughter"', '"Patrick Hand"', 'cursive'],
+                        serif: ['"Lora"', 'Georgia', 'serif'],
+                        mono: ['"Courier Prime"', 'monospace']
                     }
                 }
             }
@@ -48,48 +44,90 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 </head>
 
-<body class="bg-[#0F0E0D] text-[#EDE6D6] font-sans selection:bg-[#C8963E]/30 selection:text-[#EDE6D6] antialiased overflow-x-hidden min-h-screen">
+<body class="paper-sheet bg-[#FAF6EC] text-[#1C1917] font-hand selection:bg-[#F4C430]/50 selection:text-[#1C1917] antialiased overflow-x-hidden min-h-screen">
     <div id="app">
-        <div class="fixed inset-0 bg-[#0F0E0D] flex flex-col items-center justify-center p-6 text-center select-none">
-            <!-- Opening-book preloader -->
-            <div class="relative w-24 h-24 mb-8 flex items-center justify-center">
-                <div class="absolute inset-0 rounded-full border border-[#2E2A25] animate-ping opacity-25"></div>
-                <div class="absolute inset-2 rounded-full border border-[#C8963E]/40 animate-spin" style="animation-duration: 8s;"></div>
-                <svg class="w-12 h-12 text-[#C8963E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"></path>
-                    <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path>
+        <div class="fixed inset-0 paper-sheet bg-[#FAF6EC] flex flex-col items-center justify-center p-6 text-center select-none">
+            <div class="mb-5">
+                <svg class="w-28 h-28 mx-auto" viewBox="0 0 140 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="20,72 70,38 120,72" fill="#D93829" stroke="#1C1917" stroke-width="3" stroke-linejoin="round"/>
+                    <rect x="30" y="72" width="80" height="46" fill="#D93829" stroke="#1C1917" stroke-width="3"/>
+                    <line x1="30" y1="87" x2="110" y2="87" stroke="#1C1917" stroke-width="2"/>
+                    <line x1="30" y1="102" x2="110" y2="102" stroke="#1C1917" stroke-width="2"/>
+                    <ellipse cx="64" cy="34" rx="14" ry="9" fill="#FFFDF7" stroke="#1C1917" stroke-width="2.5"/>
+                    <ellipse cx="56" cy="36" rx="5" ry="7" fill="#1C1917"/>
+                    <circle cx="76" cy="31" r="2.2" fill="#1C1917"/>
+                    <path d="M77 35 Q83 37 88 33" stroke="#1C1917" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="44" cy="36" rx="11" ry="6" fill="#FFFDF7" stroke="#1C1917" stroke-width="2.5"/>
+                    <rect x="82" y="25" width="16" height="12" rx="2" fill="#57534E" stroke="#1C1917" stroke-width="2"/>
+                    <rect x="85" y="16" width="10" height="10" fill="#FFFDF7" stroke="#1C1917" stroke-width="1.8" class="animate-bounce"/>
                 </svg>
             </div>
-            <h1 class="font-serif text-2xl tracking-[0.25em] text-[#EDE6D6] uppercase mb-2">EveryPage Library</h1>
-            <p class="font-mono text-xs text-[#9E9587] tracking-widest uppercase">Opening the shelves...</p>
+            <h1 class="font-comic text-2xl sm:text-3xl font-bold text-[#1C1917] tracking-wide mb-1">EveryPage Library</h1>
+            <p class="font-mono text-xs text-[#57534E]">*clack-clack-ding!* Setting out the reading cards...</p>
         </div>
     </div>
 
-    <div id="blazor-error-ui" class="hidden fixed bottom-4 right-4 bg-[#181614] border border-[#9E332D] text-[#EDE6D6] p-4 rounded shadow-2xl z-50 text-sm max-w-md">
-        <span>An unhandled error has occurred in the library runtime.</span>
-        <a href="" class="reload underline text-[#C8963E] ml-2">Reload</a>
-        <a class="dismiss cursor-pointer ml-3 text-[#9E9587]">Dismiss</a>
+    <div id="blazor-error-ui" class="hidden fixed bottom-4 right-4 bg-[#FFFDF7] border-2 border-[#D93829] text-[#1C1917] p-4 rounded-sm shadow-[4px_4px_0px_#1C1917] z-50 text-sm max-w-md">
+        <span>Oops! A page slipped off the desk.</span>
+        <a href="" class="reload underline font-bold text-[#D93829] ml-2">Reload</a>
+        <a class="dismiss cursor-pointer ml-3 text-[#57534E]">Dismiss</a>
     </div>
 
-    <!-- Library JS Interop: direct-to-browser downloads -->
     <script>
         window.EveryPageLibrary = {
-            /**
-             * Downloads a book file straight to the reader's browser, keeping the
-             * filename clean. Tries a blob download first; if the remote server
-             * blocks cross-origin reads, falls back to a plain anchor download.
-             */
-            downloadFile: async function (url, fileName) {
-                if (!url) {
-                    return false;
-                }
+            _observer: null,
+            _scrollHandler: null,
+            _scrollTicking: false,
 
+            observeSentinel: function (element, dotNetHelper) {
+                this.disconnectSentinel();
+                if (!element || !dotNetHelper) return;
+
+                var trigger = function () {
+                    dotNetHelper.invokeMethodAsync('OnScrollBottomReached').catch(function () {});
+                };
+
+                this._observer = new IntersectionObserver(function (entries) {
+                    if (entries[0] && entries[0].isIntersecting) {
+                        trigger();
+                    }
+                }, { rootMargin: '1600px' });
+
+                this._observer.observe(element);
+
+                var self = this;
+                this._scrollHandler = function () {
+                    if (self._scrollTicking) return;
+                    self._scrollTicking = true;
+                    window.requestAnimationFrame(function () {
+                        self._scrollTicking = false;
+                        var scrollPos = window.scrollY + window.innerHeight;
+                        var docHeight = document.documentElement.scrollHeight;
+                        if (docHeight - scrollPos <= 1600) {
+                            trigger();
+                        }
+                    });
+                };
+
+                window.addEventListener('scroll', this._scrollHandler, { passive: true });
+            },
+
+            disconnectSentinel: function () {
+                if (this._observer) {
+                    this._observer.disconnect();
+                    this._observer = null;
+                }
+                if (this._scrollHandler) {
+                    window.removeEventListener('scroll', this._scrollHandler);
+                    this._scrollHandler = null;
+                }
+            },
+
+            downloadFile: async function (url, fileName) {
+                if (!url) return false;
                 try {
                     const response = await fetch(url, { mode: 'cors' });
-                    if (!response.ok) {
-                        throw new Error('HTTP ' + response.status);
-                    }
-
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
                     const blob = await response.blob();
                     const objectUrl = URL.createObjectURL(blob);
                     const anchor = document.createElement('a');
@@ -101,12 +139,10 @@
                     setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 2000);
                     return true;
                 } catch (error) {
-                    console.warn('Blob download unavailable, using direct download:', error);
                     return window.EveryPageLibrary.downloadFromUrl(url, fileName);
                 }
             },
 
-            /** Plain anchor download — used when blob reading is blocked. */
             downloadFromUrl: function (url, fileName) {
                 try {
                     const anchor = document.createElement('a');
@@ -124,7 +160,6 @@
                 }
             },
 
-            /** Saves plain text (e.g. a Gutenberg .txt edition) under a clean name. */
             downloadTextFile: function (fileName, content) {
                 try {
                     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });

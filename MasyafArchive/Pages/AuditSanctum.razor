@@ -5,65 +5,37 @@
 @inject AuthStateService AuthState
 @implements IDisposable
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-[#1C1917]">
     @if (!AuthState.IsAuthenticated || !AuthState.IsAuditor)
     {
-        <div class="max-w-xl mx-auto my-16 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center candle-glow">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#9E332D] flex items-center justify-center text-[#9E332D] bg-[#0F0E0D]">
-                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-            </div>
-
-            <h2 class="font-serif text-3xl font-bold text-[#EDE6D6] mb-2">Auditor Access Required</h2>
-            <p class="text-sm font-sans text-[#9E9587] leading-relaxed mb-6">
-                This area contains system audit logs and moderation controls for EveryPage Library.
-            </p>
-
-            <div class="p-4 rounded-sm border border-[#2E2A25] bg-[#0F0E0D] mb-6">
-                <button type="button"
-                        @onclick="SignInAsAltair"
-                        class="w-full py-2.5 px-4 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-md">
-                    Demo: Sign in as Auditor (Altair)
-                </button>
-            </div>
-
-            <a href="/" class="text-xs font-mono uppercase tracking-wider text-[#9E9587] hover:text-[#EDE6D6]">
-                Return to Library
-            </a>
+        <div class="max-w-md mx-auto my-16 p-8 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm text-center">
+            <h2 class="font-comic text-3xl font-bold mb-2">Librarian Desk Only</h2>
+            <p class="text-base text-[#57534E] mb-6">Only accounts with the <strong>auditor</strong> role can view the site log and moderate cards.</p>
+            <button type="button" @onclick="SignInAsAltair"
+                    class="ink-btn w-full py-2.5 px-4 text-sm font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm mb-4">
+                Demo: Sign in as Librarian (Altair)
+            </button>
+            <a href="/" class="block text-xs font-mono font-bold underline">Back to Library</a>
         </div>
     }
     else
     {
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b border-[#2E2A25]">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b-2 border-[#1C1917]">
             <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono tracking-widest uppercase bg-[#9E332D]/20 border border-[#9E332D] text-[#EDE6D6]">
-                        Auditor Role
-                    </span>
-                    <span class="text-xs font-mono text-[#9E9587]">
-                        User: <strong class="text-[#C8963E]">@AuthState.CurrentUser?.Username</strong>
-                    </span>
-                </div>
-                <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#EDE6D6]">
-                    Site Audit &amp; Moderation
-                </h1>
-                <p class="text-sm text-[#9E9587] mt-1 font-sans">
-                    Chronological audit history and indexed book moderation.
-                </p>
+                <span class="inline-block px-2 py-0.5 text-xs font-mono font-bold uppercase bg-[#D93829] text-[#FFFDF7] border border-[#1C1917] mb-1">
+                    Auditor: @AuthState.CurrentUser?.Username
+                </span>
+                <h1 class="font-comic text-3xl sm:text-4xl font-bold">Site Audit &amp; Card Moderation</h1>
             </div>
 
-            <div class="flex items-center bg-[#181614] border border-[#2E2A25] p-1 rounded-sm text-xs font-mono">
-                <button type="button"
-                        @onclick='() => activeTab = "ledger"'
-                        class='px-4 py-2 uppercase tracking-wider rounded-sm transition-all @(activeTab == "ledger" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "text-[#9E9587] hover:text-[#EDE6D6]")'>
+            <div class="flex items-center gap-2 font-mono text-xs font-bold">
+                <button type="button" @onclick='() => activeTab = "ledger"'
+                        class='ink-btn px-4 py-2 uppercase rounded-sm @(activeTab == "ledger" ? "bg-[#F4C430]" : "bg-[#FFFDF7]")'>
                     Audit Log (@auditLogs.Count)
                 </button>
-                <button type="button"
-                        @onclick='() => activeTab = "moderation"'
-                        class='px-4 py-2 uppercase tracking-wider rounded-sm transition-all @(activeTab == "moderation" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "text-[#9E9587] hover:text-[#EDE6D6]")'>
-                    Catalog Moderation (@activeBooks.Count Active, @sealedBooks.Count Deleted)
+                <button type="button" @onclick='() => activeTab = "moderation"'
+                        class='ink-btn px-4 py-2 uppercase rounded-sm @(activeTab == "moderation" ? "bg-[#F4C430]" : "bg-[#FFFDF7]")'>
+                    Books (@activeBooks.Count Active, @sealedBooks.Count Deleted)
                 </button>
             </div>
         </div>
@@ -71,173 +43,106 @@
         @if (activeTab == "ledger")
         {
             <div class="space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#181614] border border-[#2E2A25] rounded-sm">
-                    <div class="flex items-center gap-2 flex-wrap text-xs font-mono">
-                        <span class="text-[#9E9587] uppercase">Filter:</span>
+                <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[3px_3px_0px_#1C1917] rounded-sm">
+                    <div class="flex items-center gap-2 flex-wrap text-xs font-mono font-bold">
                         @foreach (var filter in actionFilters)
                         {
-                            <button type="button"
-                                    @onclick="() => FilterByAction(filter.Key)"
-                                    class='px-2.5 py-1 rounded-sm border uppercase text-[11px] transition-all @(selectedAction == filter.Key ? "bg-[#C8963E] text-[#0F0E0D] border-[#C8963E] font-bold" : "bg-[#0F0E0D] border-[#2E2A25] text-[#9E9587] hover:text-[#EDE6D6]")'>
+                            <button type="button" @onclick="() => FilterByAction(filter.Key)"
+                                    class='ink-btn px-2.5 py-1 rounded-sm uppercase @(selectedAction == filter.Key ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FAF6EC]")'>
                                 @filter.Value
                             </button>
                         }
                     </div>
-
-                    <button type="button"
-                            @onclick="LoadDataAsync"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[#2E2A25] bg-[#0F0E0D] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
-                        Refresh Log
+                    <button type="button" @onclick="LoadDataAsync" class="ink-btn px-3 py-1.5 text-xs font-mono font-bold uppercase bg-[#F4C430] rounded-sm">
+                        Refresh
                     </button>
                 </div>
 
-                <div class="bg-[#181614] border border-[#2E2A25] rounded-sm overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs font-sans">
-                            <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] tracking-wider text-[11px]">
-                                <tr>
-                                    <th class="py-3 px-4">Timestamp (UTC)</th>
-                                    <th class="py-3 px-4">User / Role</th>
-                                    <th class="py-3 px-4">Action</th>
-                                    <th class="py-3 px-4">Target</th>
-                                    <th class="py-3 px-4">Details</th>
+                <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-[#F2EAD8] border-b-2 border-[#1C1917] uppercase">
+                            <tr>
+                                <th class="py-3 px-4">UTC Time</th>
+                                <th class="py-3 px-4">User</th>
+                                <th class="py-3 px-4">Action</th>
+                                <th class="py-3 px-4">Book</th>
+                                <th class="py-3 px-4">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#1C1917]/20">
+                            @foreach (var log in auditLogs)
+                            {
+                                <tr class="hover:bg-[#FAF6EC]">
+                                    <td class="py-2.5 px-4 whitespace-nowrap">@log.CreatedAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="py-2.5 px-4 font-bold">@log.ActorName (@log.ActorRole)</td>
+                                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 border border-[#1C1917] bg-[#F4C430] font-bold">@log.Action</span></td>
+                                    <td class="py-2.5 px-4 font-bold text-[#D93829]">@log.TargetTitle</td>
+                                    <td class="py-2.5 px-4 font-hand text-sm">@log.Details</td>
                                 </tr>
-                            </thead>
-                            <tbody class="divide-y divide-[#2E2A25]/60 font-mono">
-                                @if (isLoading)
-                                {
-                                    <tr><td colspan="5" class="py-8 text-center text-xs text-[#9E9587]">Loading audit records...</td></tr>
-                                }
-                                else if (auditLogs.Count == 0)
-                                {
-                                    <tr><td colspan="5" class="py-8 text-center text-xs text-[#9E9587]">No audit records found.</td></tr>
-                                }
-                                else
-                                {
-                                    @foreach (var log in auditLogs)
-                                    {
-                                        <tr class="hover:bg-[#201E1A]/60 transition-colors">
-                                            <td class="py-3 px-4 text-[#9E9587] whitespace-nowrap">
-                                                @log.CreatedAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                                            </td>
-                                            <td class="py-3 px-4 whitespace-nowrap font-sans">
-                                                <span class="font-semibold text-[#EDE6D6]">@log.ActorName</span>
-                                                <span class="ml-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded-sm uppercase @(log.ActorRole.Equals("auditor", StringComparison.OrdinalIgnoreCase) ? "bg-[#9E332D]/30 text-[#EDE6D6] border border-[#9E332D]" : "bg-[#2E2A25] text-[#9E9587]")">
-                                                    @log.ActorRole
-                                                </span>
-                                            </td>
-                                            <td class="py-3 px-4 whitespace-nowrap">
-                                                <span class="inline-block px-2 py-0.5 text-[10px] uppercase font-bold rounded-sm @GetActionBadgeClass(log.Action)">
-                                                    @FormatActionLabel(log.Action)
-                                                </span>
-                                            </td>
-                                            <td class="py-3 px-4 text-[#C8963E] font-medium whitespace-nowrap">@log.TargetTitle</td>
-                                            <td class="py-3 px-4 text-[#9E9587] font-sans text-xs max-w-md">@log.Details</td>
-                                        </tr>
-                                    }
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         }
         else
         {
             <div class="space-y-8">
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">Indexed Books</h3>
-                        <span class="text-xs font-mono text-[#C8963E]">@activeBooks.Count Active</span>
-                    </div>
+                <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-[#F2EAD8] border-b-2 border-[#1C1917] font-mono text-xs uppercase">
+                            <tr>
+                                <th class="py-3 px-4">ID</th>
+                                <th class="py-3 px-4">Title</th>
+                                <th class="py-3 px-4">Author</th>
+                                <th class="py-3 px-4">Source</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#1C1917]/20">
+                            @foreach (var book in activeBooks)
+                            {
+                                <tr>
+                                    <td class="py-2.5 px-4 font-mono text-xs">#@book.Id.ToString("D4")</td>
+                                    <td class="py-2.5 px-4 font-comic font-bold">@book.Title</td>
+                                    <td class="py-2.5 px-4">@book.Author</td>
+                                    <td class="py-2.5 px-4 font-mono text-xs">@book.SourceBadge</td>
+                                    <td class="py-2.5 px-4 text-right space-x-2">
+                                        <button type="button" @onclick="() => OpenEditModal(book)" class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#FFFDF7] rounded-sm">Edit</button>
+                                        <button type="button" @onclick="() => PromptSeal(book)" class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#D93829] text-[#FFFDF7] rounded-sm">Delete</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
-                    <div class="bg-[#181614] border border-[#2E2A25] rounded-sm overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs font-sans">
-                                <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] text-[11px]">
+                @if (sealedBooks.Count > 0)
+                {
+                    <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-[#D93829] text-[#FFFDF7] border-b-2 border-[#1C1917] font-mono text-xs uppercase">
+                                <tr>
+                                    <th class="py-3 px-4">Deleted Title</th>
+                                    <th class="py-3 px-4">Author</th>
+                                    <th class="py-3 px-4 text-right">Restore</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#1C1917]/20">
+                                @foreach (var book in sealedBooks)
+                                {
                                     <tr>
-                                        <th class="py-3 px-4">ID</th>
-                                        <th class="py-3 px-4">Title</th>
-                                        <th class="py-3 px-4">Author</th>
-                                        <th class="py-3 px-4">Source</th>
-                                        <th class="py-3 px-4">Genre</th>
-                                        <th class="py-3 px-4">Downloads</th>
-                                        <th class="py-3 px-4 text-right">Actions</th>
+                                        <td class="py-2.5 px-4 font-comic font-bold">@book.Title</td>
+                                        <td class="py-2.5 px-4">@book.Author</td>
+                                        <td class="py-2.5 px-4 text-right">
+                                            <button type="button" @onclick="() => RestoreBook(book.Id)" class="ink-btn px-3 py-1 text-xs font-mono font-bold bg-[#F4C430] rounded-sm">Restore</button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody class="divide-y divide-[#2E2A25]/60">
-                                    @foreach (var book in activeBooks)
-                                    {
-                                        <tr class="hover:bg-[#201E1A]/50 transition-colors">
-                                            <td class="py-3 px-4 font-mono text-[#9E9587]">#@book.Id.ToString("D4")</td>
-                                            <td class="py-3 px-4 font-serif font-bold text-sm text-[#EDE6D6]">@book.Title</td>
-                                            <td class="py-3 px-4 text-[#9E9587]">@book.Author</td>
-                                            <td class="py-3 px-4 font-mono text-[11px] text-[#9E9587]">@book.SourceBadge</td>
-                                            <td class="py-3 px-4">
-                                                <span class="px-2 py-0.5 font-mono text-[10px] uppercase rounded-sm border border-[#2E2A25] bg-[#0F0E0D] text-[#C8963E]">
-                                                    @book.GenreLabel
-                                                </span>
-                                            </td>
-                                            <td class="py-3 px-4 font-mono text-[#9E9587]">@book.DownloadCount</td>
-                                            <td class="py-3 px-4 text-right">
-                                                <div class="inline-flex items-center gap-2">
-                                                    <button type="button" @onclick="() => OpenEditModal(book)" class="px-2.5 py-1 text-[11px] font-mono uppercase border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm">Edit</button>
-                                                    <button type="button" @onclick="() => PromptSeal(book)" class="px-2.5 py-1 text-[11px] font-mono uppercase border border-[#9E332D]/40 hover:border-[#9E332D] text-[#9E332D] hover:bg-[#9E332D]/10 rounded-sm">Delete</button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">Deleted Books</h3>
-                        <span class="text-xs font-mono text-[#9E332D]">@sealedBooks.Count Deleted</span>
-                    </div>
-
-                    @if (sealedBooks.Count == 0)
-                    {
-                        <div class="p-8 text-center bg-[#181614] border border-[#2E2A25] rounded-sm text-xs font-mono text-[#9E9587]">
-                            No deleted books.
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="bg-[#181614] border border-[#2E2A25] rounded-sm overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left text-xs font-sans">
-                                    <thead class="bg-[#0F0E0D] border-b border-[#2E2A25] font-mono uppercase text-[#9E9587] text-[11px]">
-                                        <tr>
-                                            <th class="py-3 px-4">ID</th>
-                                            <th class="py-3 px-4">Title</th>
-                                            <th class="py-3 px-4">Author</th>
-                                            <th class="py-3 px-4">Deleted Date (UTC)</th>
-                                            <th class="py-3 px-4 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-[#2E2A25]/60">
-                                        @foreach (var book in sealedBooks)
-                                        {
-                                            <tr class="hover:bg-[#201E1A]/50 transition-colors">
-                                                <td class="py-3 px-4 font-mono text-[#9E9587]">#@book.Id.ToString("D4")</td>
-                                                <td class="py-3 px-4 font-serif font-bold text-sm text-[#EDE6D6]">@book.Title</td>
-                                                <td class="py-3 px-4 text-[#9E9587]">@book.Author</td>
-                                                <td class="py-3 px-4 font-mono text-[#9E332D]">@(book.DeletedAt?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "Unknown")</td>
-                                                <td class="py-3 px-4 text-right">
-                                                    <button type="button" @onclick="() => RestoreBook(book.Id)" class="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm">Restore</button>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    }
-                </div>
+                }
             </div>
         }
     }
@@ -245,184 +150,72 @@
 
 @if (isSealPromptOpen && bookToSeal != null)
 {
-    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-in">
-        <div class="w-full max-w-md bg-[#181614] border border-[#9E332D] rounded-sm p-6 space-y-4 candle-glow">
-            <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">Delete Book</h3>
-            <p class="text-xs text-[#9E9587]">
-                Deleting <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> removes it from the public catalog. You can restore it at any time.
-            </p>
-            <div>
-                <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Reason:</label>
-                <input type="text" @bind="sealReason" class="w-full text-xs p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#9E332D] focus:outline-none" />
-            </div>
-            <div class="flex items-center justify-end gap-3 pt-3">
-                <button type="button" @onclick="() => isSealPromptOpen = false" class="px-3 py-1.5 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">Cancel</button>
-                <button type="button" @onclick="ConfirmSealBook" class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm">Confirm Delete</button>
+    <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm p-6 space-y-4">
+            <h3 class="font-comic text-xl font-bold text-[#D93829]">Delete @bookToSeal.Title?</h3>
+            <input type="text" @bind="sealReason" class="w-full text-sm p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]" />
+            <div class="flex justify-end gap-2">
+                <button type="button" @onclick="() => isSealPromptOpen = false" class="ink-btn px-3 py-1 text-xs font-mono font-bold bg-[#FFFDF7] rounded-sm">Cancel</button>
+                <button type="button" @onclick="ConfirmSealBook" class="ink-btn px-4 py-1 text-xs font-mono font-bold bg-[#D93829] text-[#FFFDF7] rounded-sm">Delete</button>
             </div>
         </div>
     </div>
 }
 
-<EditTomeModal IsOpen="isEditModalOpen"
-               Book="bookToEdit"
-               OnClose="() => isEditModalOpen = false"
-               OnSaved="HandleBookUpdated" />
+<EditTomeModal IsOpen="isEditModalOpen" Book="bookToEdit" OnClose="() => isEditModalOpen = false" OnSaved="HandleBookUpdated" />
 
 @code {
     private string activeTab = "ledger";
     private string selectedAction = "All";
-    private bool isLoading = false;
-
     private List<AuditLog> auditLogs = new();
     private List<Book> activeBooks = new();
     private List<Book> sealedBooks = new();
-
     private bool isSealPromptOpen = false;
     private Book? bookToSeal;
     private string sealReason = "";
-
     private bool isEditModalOpen = false;
     private Book? bookToEdit;
 
     private readonly Dictionary<string, string> actionFilters = new()
     {
-        { "All", "All" },
-        { "UPLOAD_BOOK", "PDF Uploads" },
-        { "DOWNLOAD_BOOK", "Downloads" },
-        { "EDIT_BOOK", "Edits" },
-        { "DELETE_BOOK", "Deletions" },
-        { "RESTORE_BOOK", "Restores" },
-        { "POST_COMMENT", "Notes" },
-        { "DELETE_COMMENT", "Deleted Notes" },
-        { "SCHOLAR_SIGN_IN", "Sign Ins" }
+        { "All", "All" }, { "UPLOAD_BOOK", "Uploads" }, { "DOWNLOAD_BOOK", "Downloads" },
+        { "EDIT_BOOK", "Edits" }, { "DELETE_BOOK", "Deletions" }, { "RESTORE_BOOK", "Restores" },
+        { "POST_COMMENT", "Notes" }, { "SCHOLAR_SIGN_IN", "Sign Ins" }
     };
 
-    protected override async Task OnInitializedAsync()
-    {
-        AuthState.OnChange += HandleAuthChange;
-        await LoadDataAsync();
-    }
-
-    private void HandleAuthChange()
-    {
-        InvokeAsync(async () =>
-        {
-            await LoadDataAsync();
-            StateHasChanged();
-        });
-    }
+    protected override async Task OnInitializedAsync() { AuthState.OnChange += HandleAuthChange; await LoadDataAsync(); }
+    private void HandleAuthChange() => InvokeAsync(async () => { await LoadDataAsync(); StateHasChanged(); });
 
     private async Task LoadDataAsync()
     {
         if (!AuthState.IsAuditor) return;
-
-        isLoading = true;
-        try
-        {
-            auditLogs = await ArchiveService.GetAuditLogsAsync(selectedAction);
-            activeBooks = await ArchiveService.GetBooksAsync("All", null, 100);
-            sealedBooks = await ArchiveService.GetSealedBooksAsync(100);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading audit data: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        auditLogs = await ArchiveService.GetAuditLogsAsync(selectedAction);
+        activeBooks = await ArchiveService.GetBooksAsync("All", null, 100);
+        sealedBooks = await ArchiveService.GetSealedBooksAsync(100);
     }
 
-    private async Task FilterByAction(string action)
-    {
-        selectedAction = action;
-        isLoading = true;
-        try
-        {
-            auditLogs = await ArchiveService.GetAuditLogsAsync(selectedAction);
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private void PromptSeal(Book book)
-    {
-        bookToSeal = book;
-        sealReason = "Content moderation review";
-        isSealPromptOpen = true;
-    }
+    private async Task FilterByAction(string action) { selectedAction = action; auditLogs = await ArchiveService.GetAuditLogsAsync(selectedAction); }
+    private void PromptSeal(Book book) { bookToSeal = book; sealReason = "Content moderation"; isSealPromptOpen = true; }
 
     private async Task ConfirmSealBook()
     {
         if (bookToSeal == null || !AuthState.IsAuditor) return;
-
-        var user = AuthState.CurrentUser!;
-        var success = await ArchiveService.SoftDeleteBookAsync(bookToSeal.Id, user.Username, user.Role, sealReason);
-        if (success)
+        var u = AuthState.CurrentUser!;
+        if (await ArchiveService.SoftDeleteBookAsync(bookToSeal.Id, u.Username, u.Role, sealReason))
         {
-            isSealPromptOpen = false;
-            bookToSeal = null;
-            await LoadDataAsync();
+            isSealPromptOpen = false; bookToSeal = null; await LoadDataAsync();
         }
     }
 
-    private async Task RestoreBook(long bookId)
+    private async Task RestoreBook(long id)
     {
         if (!AuthState.IsAuditor) return;
-
-        var user = AuthState.CurrentUser!;
-        if (await ArchiveService.RestoreBookAsync(bookId, user.Username, user.Role))
-        {
-            await LoadDataAsync();
-        }
+        var u = AuthState.CurrentUser!;
+        if (await ArchiveService.RestoreBookAsync(id, u.Username, u.Role)) await LoadDataAsync();
     }
 
-    private void OpenEditModal(Book book)
-    {
-        bookToEdit = book;
-        isEditModalOpen = true;
-    }
-
-    private async Task HandleBookUpdated(Book updated)
-    {
-        isEditModalOpen = false;
-        await LoadDataAsync();
-    }
-
-    private async Task SignInAsAltair()
-    {
-        await AuthState.SignInAsync("Altair", "masyaf1191");
-        await LoadDataAsync();
-    }
-
-    private static string FormatActionLabel(string action) => action switch
-    {
-        "UPLOAD_BOOK" => "Upload PDF",
-        "DOWNLOAD_BOOK" => "Download",
-        "EDIT_BOOK" => "Edit Metadata",
-        "DELETE_BOOK" => "Delete Book",
-        "RESTORE_BOOK" => "Restore Book",
-        "POST_COMMENT" => "Post Note",
-        "DELETE_COMMENT" => "Delete Note",
-        "SCHOLAR_SIGN_IN" => "Sign In",
-        "SCHOLAR_REGISTER" => "Register",
-        "SCHOLAR_SIGN_OUT" => "Sign Out",
-        _ => action
-    };
-
-    private static string GetActionBadgeClass(string action) => action switch
-    {
-        "UPLOAD_BOOK" => "bg-[#C8963E]/20 text-[#DDA84B] border border-[#C8963E]/40",
-        "DOWNLOAD_BOOK" => "bg-[#201E1A] text-[#EDE6D6] border border-[#2E2A25]",
-        "DELETE_BOOK" => "bg-[#9E332D]/20 text-[#EDE6D6] border border-[#9E332D]",
-        "RESTORE_BOOK" => "bg-[#C8963E]/30 text-[#EDE6D6] border border-[#C8963E]",
-        "EDIT_BOOK" => "bg-[#2E2A25] text-[#EDE6D6] border border-[#8C6D3F]",
-        "POST_COMMENT" => "bg-[#201E1A] text-[#C8963E] border border-[#2E2A25]",
-        "DELETE_COMMENT" => "bg-[#9E332D]/10 text-[#9E332D] border border-[#9E332D]/40",
-        _ => "bg-[#181614] text-[#9E9587] border border-[#2E2A25]"
-    };
-
+    private void OpenEditModal(Book book) { bookToEdit = book; isEditModalOpen = true; }
+    private async Task HandleBookUpdated(Book updated) { isEditModalOpen = false; await LoadDataAsync(); }
+    private async Task SignInAsAltair() { await AuthState.SignInAsync("Altair", "masyaf1191"); await LoadDataAsync(); }
     public void Dispose() => AuthState.OnChange -= HandleAuthChange;
 }

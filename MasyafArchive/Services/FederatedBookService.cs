@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -7,20 +7,15 @@ using MasyafArchive.Models;
 
 namespace MasyafArchive.Services;
 
-/// <summary>
-/// Queries the two open-access book catalogs (Gutendex / Project Gutenberg and
-/// Open Library) in parallel and returns one merged, de-duplicated shelf.
-/// </summary>
 public class FederatedBookService
 {
-    private const int SearchLimitPerSource = 15;
-    private const int FeaturedLimitPerTopic = 5;
-
-    /// <summary>Topics pulled in parallel to fill the shelf before the reader searches.</summary>
-    private static readonly string[] FeaturedTopics = { "Philosophy", "History", "Science", "Fiction" };
+    private const int PageSizePerSource = 32;
+    private static readonly TimeSpan SourceTimeout = TimeSpan.FromMilliseconds(4500);
 
     private readonly GutendexBookSource _gutendex;
     private readonly OpenLibraryBookSource _openLibrary;
+    private readonly Dictionary<string, List<Book>> _pageCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Task<List<Book>>> _inFlight = new(StringComparer.OrdinalIgnoreCase);
 
     public FederatedBookService(GutendexBookSource gutendex, OpenLibraryBookSource openLibrary)
     {
@@ -28,84 +23,155 @@ public class FederatedBookService
         _openLibrary = openLibrary;
     }
 
-    /// <summary>The default shelf: a spread of real public-domain books across genres.</summary>
-    public async Task<List<Book>> GetFeaturedBooksAsync(CancellationToken cancellationToken = default)
+    public bool IsCached(string query, string? genre, int page)
     {
-        var tasks = new List<Task<List<Book>>>
-        {
-            _gutendex.GetPopularAsync("Literature", FeaturedLimitPerTopic, cancellationToken),
-            _openLibrary.BrowseSubjectAsync("literature", "Literature", FeaturedLimitPerTopic, cancellationToken)
-        };
-
-        foreach (var topic in FeaturedTopics)
-        {
-            tasks.Add(_gutendex.BrowseTopicAsync(topic, topic, FeaturedLimitPerTopic, cancellationToken));
-        }
-
-        var results = await Task.WhenAll(tasks);
-        return Merge(results);
+        var key = BuildCacheKey(query, genre, page);
+        return _pageCache.TryGetValue(key, out var list) && list.Count > 0;
     }
 
-    /// <summary>Unified search across both catalogs, optionally narrowed to a genre.</summary>
-    public async Task<List<Book>> SearchAsync(string query, string? genre, CancellationToken cancellationToken = default)
+    public Task PrefetchPageAsync(string query, string? genre, int page, CancellationToken cancellationToken = default)
+    {
+        if (IsCached(query, genre, page))
+            return Task.CompletedTask;
+
+        return SearchPagedAsync(query, genre, page, onPartialBatchReady: null, cancellationToken);
+    }
+
+    public Task<List<Book>> SearchPagedAsync(
+        string query,
+        string? genre,
+        int page = 1,
+        Action<List<Book>>? onPartialBatchReady = null,
+        CancellationToken cancellationToken = default)
     {
         var trimmed = (query ?? string.Empty).Trim();
-        var hasGenre = !string.IsNullOrWhiteSpace(genre)
-                       && !genre.Equals("All", StringComparison.OrdinalIgnoreCase);
+        var normalizedGenre = string.IsNullOrWhiteSpace(genre) ? "All" : genre.Trim();
+        var cacheKey = BuildCacheKey(trimmed, normalizedGenre, page);
 
-        if (trimmed.Length == 0 && !hasGenre)
+        if (_pageCache.TryGetValue(cacheKey, out var cached) && cached.Count > 0)
         {
-            return await GetFeaturedBooksAsync(cancellationToken);
+            onPartialBatchReady?.Invoke(cached);
+            return Task.FromResult(cached);
         }
 
-        var tasks = new List<Task<List<Book>>>();
-
-        if (trimmed.Length > 0)
+        if (_inFlight.TryGetValue(cacheKey, out var existingTask))
         {
-            tasks.Add(_gutendex.SearchAsync(trimmed, hasGenre ? genre : null, SearchLimitPerSource, cancellationToken));
-            tasks.Add(_openLibrary.SearchAsync(trimmed, hasGenre ? genre : null, SearchLimitPerSource, cancellationToken));
+            return AttachToInFlightAsync(existingTask, onPartialBatchReady);
         }
 
-        if (hasGenre)
-        {
-            tasks.Add(_gutendex.BrowseTopicAsync(genre!, genre, SearchLimitPerSource, cancellationToken));
-            tasks.Add(_openLibrary.BrowseSubjectAsync(genre!.ToLowerInvariant(), genre, SearchLimitPerSource, cancellationToken));
-        }
-
-        if (tasks.Count == 0)
-        {
-            return new List<Book>();
-        }
-
-        var results = await Task.WhenAll(tasks);
-        return Merge(results);
+        var task = ExecuteFetchAsync(cacheKey, trimmed, normalizedGenre, page, onPartialBatchReady, cancellationToken);
+        _inFlight[cacheKey] = task;
+        return task;
     }
 
-    /// <summary>Fetches a single genre's shelf from both catalogs.</summary>
-    public async Task<List<Book>> BrowseGenreAsync(string genre, CancellationToken cancellationToken = default)
+    private static async Task<List<Book>> AttachToInFlightAsync(
+        Task<List<Book>> inFlightTask,
+        Action<List<Book>>? onPartialBatchReady)
     {
-        var results = await Task.WhenAll(
-            _gutendex.BrowseTopicAsync(genre, genre, SearchLimitPerSource, cancellationToken),
-            _openLibrary.BrowseSubjectAsync(genre.ToLowerInvariant(), genre, SearchLimitPerSource, cancellationToken));
-
-        return Merge(results);
+        var result = await inFlightTask;
+        if (result.Count > 0)
+        {
+            onPartialBatchReady?.Invoke(result);
+        }
+        return result;
     }
 
-    /// <summary>Flattens the batches, drops duplicates and books with no usable download.</summary>
-    private static List<Book> Merge(IEnumerable<List<Book>> batches)
+    private async Task<List<Book>> ExecuteFetchAsync(
+        string cacheKey,
+        string trimmed,
+        string normalizedGenre,
+        int page,
+        Action<List<Book>>? onPartialBatchReady,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var hasGenre = !normalizedGenre.Equals("All", StringComparison.OrdinalIgnoreCase);
+            var pending = new List<Task<List<Book>>>();
+
+            if (trimmed.Length > 0)
+            {
+                pending.Add(WithTimeout(_openLibrary.SearchAsync(trimmed, hasGenre ? normalizedGenre : null, PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_gutendex.SearchAsync(trimmed, hasGenre ? normalizedGenre : null, PageSizePerSource, page, cancellationToken), cancellationToken));
+            }
+            else if (hasGenre)
+            {
+                pending.Add(WithTimeout(_openLibrary.BrowseSubjectAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_gutendex.BrowseTopicAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
+            }
+            else
+            {
+                pending.Add(WithTimeout(_openLibrary.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_gutendex.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
+            }
+
+            var batches = new List<List<Book>>();
+            while (pending.Count > 0)
+            {
+                var finished = await Task.WhenAny(pending);
+                pending.Remove(finished);
+
+                var batch = await finished;
+                if (batch.Count > 0)
+                {
+                    batches.Add(batch);
+                    onPartialBatchReady?.Invoke(InterleaveAndDedupe(batches));
+                }
+            }
+
+            var finalMerged = InterleaveAndDedupe(batches);
+            if (finalMerged.Count > 0)
+            {
+                _pageCache[cacheKey] = finalMerged;
+            }
+
+            return finalMerged;
+        }
+        finally
+        {
+            _inFlight.Remove(cacheKey);
+        }
+    }
+
+    private static async Task<List<Book>> WithTimeout(Task<List<Book>> sourceTask, CancellationToken externalToken)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+        var delayTask = Task.Delay(SourceTimeout, timeoutCts.Token);
+        var winner = await Task.WhenAny(sourceTask, delayTask);
+        if (winner == sourceTask)
+        {
+            timeoutCts.Cancel();
+            return await sourceTask;
+        }
+
+        return new List<Book>();
+    }
+
+    private static string BuildCacheKey(string query, string? genre, int page)
+    {
+        var q = (query ?? string.Empty).Trim();
+        var g = string.IsNullOrWhiteSpace(genre) ? "All" : genre.Trim();
+        return $"{q}|{g}|p{page}";
+    }
+
+    private static List<Book> InterleaveAndDedupe(List<List<Book>> batches)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var merged = new List<Book>();
+        var maxLen = batches.Count == 0 ? 0 : batches.Max(b => b.Count);
 
-        foreach (var book in batches.SelectMany(batch => batch))
+        for (int i = 0; i < maxLen; i++)
         {
-            var key = BuildKey(book);
-            if (!seen.Add(key))
+            foreach (var batch in batches)
             {
-                continue;
+                if (i >= batch.Count) continue;
+                var book = batch[i];
+                var key = BuildKey(book);
+                if (seen.Add(key))
+                {
+                    merged.Add(book);
+                }
             }
-
-            merged.Add(book);
         }
 
         return merged;
@@ -114,9 +180,7 @@ public class FederatedBookService
     private static string BuildKey(Book book)
     {
         if (!string.IsNullOrWhiteSpace(book.ExternalId))
-        {
             return book.ExternalId!;
-        }
 
         return $"{book.Title}|{book.Author}".ToLowerInvariant();
     }

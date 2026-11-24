@@ -5,148 +5,193 @@
 @inject FederatedBookService FederatedBooks
 @inject AuthStateService AuthState
 @inject IJSRuntime JSRuntime
-@implements IDisposable
+@implements IAsyncDisposable
 
-<!-- Hero Banner -->
-<div class="relative overflow-hidden border-b border-[#2E2A25] bg-gradient-to-b from-[#181614] via-[#121110] to-[#0F0E0D] py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-    <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#C8963E 1px, transparent 1px); background-size: 32px 32px;"></div>
+<!-- Comic Strip / Handwritten Paper Hero -->
+<div class="border-b-2 border-[#1C1917] bg-[#FFFDF7] py-8 sm:py-11 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div class="text-center lg:text-left flex-1">
+            <span class="inline-block px-3 py-1 mb-3 text-xs font-mono font-bold uppercase tracking-wider bg-[#F4C430] border-2 border-[#1C1917] shadow-[2px_2px_0px_#1C1917] rounded-sm">
+                For the People, Built by the People
+            </span>
 
-    <div class="max-w-7xl mx-auto text-center relative z-10">
-        <div class="w-16 h-16 mx-auto mb-4 rounded-full border border-[#C8963E]/30 bg-[#0F0E0D] flex items-center justify-center text-[#C8963E] shadow-xl">
-            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"></path>
-                <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path>
-            </svg>
+            <h1 class="font-comic text-4xl sm:text-6xl font-bold text-[#1C1917] leading-none mb-3">
+                EveryPage Library
+            </h1>
+
+            <p class="font-serif italic text-lg sm:text-xl text-[#57534E] mb-6 max-w-2xl mx-auto lg:mx-0">
+                "Everything Humanity Has Written, Open to Everyone."
+            </p>
+
+            <div class="inline-flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 px-5 py-3 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] shadow-[3px_3px_0px_#1C1917] font-mono text-xs">
+                <div>
+                    <span class="text-[#57534E] uppercase text-[10px] block">Books on Desk</span>
+                    <span class="text-base font-bold text-[#D93829]">@books.Count</span>
+                </div>
+                <div class="w-0.5 h-7 bg-[#1C1917]/20"></div>
+                <div>
+                    <span class="text-[#57534E] uppercase text-[10px] block">Community PDFs</span>
+                    <span class="text-base font-bold text-[#1C1917]">@stats.CommunityPdfs</span>
+                </div>
+                <div class="w-0.5 h-7 bg-[#1C1917]/20"></div>
+                <div>
+                    <span class="text-[#57534E] uppercase text-[10px] block">Saved Reads</span>
+                    <span class="text-base font-bold text-[#D93829]">@stats.TotalDownloads</span>
+                </div>
+                <div class="w-0.5 h-7 bg-[#1C1917]/20"></div>
+                <div>
+                    <span class="text-[#57534E] uppercase text-[10px] block">Gutenberg Shelves</span>
+                    <span class="text-base font-bold text-[#1C1917]">@(BookGenres.Filters.Count - 1) Topics</span>
+                </div>
+            </div>
         </div>
 
-        <p class="font-mono text-xs tracking-[0.3em] uppercase text-[#C8963E] mb-2">
-            For the People, Built by the People
-        </p>
-
-        <h1 class="font-serif text-4xl sm:text-6xl font-bold tracking-tight text-[#EDE6D6] mb-4">
-            EveryPage Library
-        </h1>
-
-        <p class="max-w-2xl mx-auto font-serif italic text-base sm:text-lg text-[#9E9587] leading-relaxed mb-6">
-            "Everything Humanity Has Written, Open to Everyone."
-        </p>
-
-        <div class="inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 px-6 py-3 rounded-sm border border-[#2E2A25] bg-[#181614]/80 backdrop-blur-sm font-mono text-xs">
-            <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Shelf Loaded</span>
-                <span class="text-base font-bold text-[#C8963E]">@books.Count</span>
-            </div>
-            <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
-            <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Community PDFs</span>
-                <span class="text-base font-bold text-[#EDE6D6]">@stats.CommunityPdfs</span>
-            </div>
-            <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
-            <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Indexed Downloads</span>
-                <span class="text-base font-bold text-[#C8963E]">@stats.TotalDownloads</span>
-            </div>
-            <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
-            <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Sources</span>
-                <span class="text-base font-bold text-[#EDE6D6]">Community + Web</span>
+        <div class="shrink-0 select-none">
+            <div class="p-3 bg-[#FAF6EC] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm">
+                <svg class="w-56 sm:w-64 h-40" viewBox="0 0 260 165" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="rotate(-12 185 32)">
+                        <rect x="172" y="18" width="24" height="30" fill="#FFFDF7" stroke="#1C1917" stroke-width="2"/>
+                        <line x1="176" y1="25" x2="192" y2="25" stroke="#1C1917" stroke-width="1.5"/>
+                        <line x1="176" y1="31" x2="190" y2="31" stroke="#1C1917" stroke-width="1.5"/>
+                        <line x1="176" y1="37" x2="188" y2="37" stroke="#1C1917" stroke-width="1.5"/>
+                    </g>
+                    <g transform="rotate(14 218 46)">
+                        <rect x="206" y="32" width="22" height="28" fill="#FFFDF7" stroke="#1C1917" stroke-width="2"/>
+                        <line x1="210" y1="39" x2="224" y2="39" stroke="#1C1917" stroke-width="1.5"/>
+                        <line x1="210" y1="45" x2="221" y2="45" stroke="#1C1917" stroke-width="1.5"/>
+                    </g>
+                    <line x1="146" y1="24" x2="154" y2="16" stroke="#1C1917" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="154" y1="30" x2="164" y2="25" stroke="#1C1917" stroke-width="2" stroke-linecap="round"/>
+                    <polygon points="32,96 112,52 192,96" fill="#D93829" stroke="#1C1917" stroke-width="3" stroke-linejoin="round"/>
+                    <rect x="46" y="96" width="132" height="58" fill="#D93829" stroke="#1C1917" stroke-width="3"/>
+                    <line x1="46" y1="115" x2="178" y2="115" stroke="#1C1917" stroke-width="2"/>
+                    <line x1="46" y1="134" x2="178" y2="134" stroke="#1C1917" stroke-width="2"/>
+                    <line x1="18" y1="154" x2="242" y2="154" stroke="#1C1917" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M56 49 Q47 41 51 35" stroke="#1C1917" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="76" cy="48" rx="18" ry="9" fill="#FFFDF7" stroke="#1C1917" stroke-width="2.5"/>
+                    <line x1="92" y1="42" x2="92" y2="54" stroke="#D93829" stroke-width="4"/>
+                    <ellipse cx="107" cy="44" rx="17" ry="11" fill="#FFFDF7" stroke="#1C1917" stroke-width="2.5"/>
+                    <ellipse cx="97" cy="47" rx="6" ry="10" fill="#1C1917"/>
+                    <circle cx="124" cy="42" r="3" fill="#1C1917"/>
+                    <circle cx="111" cy="40" r="2" fill="#1C1917"/>
+                    <path d="M112 49 Q118 52 122 48" stroke="#1C1917" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="116" cy="54" rx="7" ry="4" fill="#FFFDF7" stroke="#1C1917" stroke-width="2"/>
+                    <rect x="122" y="38" width="24" height="16" rx="2" fill="#57534E" stroke="#1C1917" stroke-width="2.5"/>
+                    <rect x="118" y="34" width="32" height="5" rx="1" fill="#1C1917"/>
+                    <rect x="127" y="21" width="14" height="14" fill="#FFFDF7" stroke="#1C1917" stroke-width="2"/>
+                    <line x1="130" y1="25" x2="138" y2="25" stroke="#1C1917" stroke-width="1.5"/>
+                    <line x1="130" y1="29" x2="136" y2="29" stroke="#1C1917" stroke-width="1.5"/>
+                </svg>
+                <p class="text-center font-mono text-[10px] text-[#57534E] mt-1">
+                    "It was a dark and stormy night... so I opened a book."
+                </p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Main Catalog Hall -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-    <!-- Genre Filter Pills & Unified Search -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-6 border-b border-[#2E2A25]">
-        <div class="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none font-mono text-xs">
-            @foreach (var genre in BookGenres.Filters)
+<!-- Main Reading Hall -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Search Bar + Upload PDF Button -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+        <form @onsubmit="ApplySearch" class="flex-1 flex items-center gap-2">
+            <div class="relative flex-1">
+                <svg class="w-4 h-4 text-[#57534E] absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text"
+                       @bind="searchQuery"
+                       placeholder="Search Project Gutenberg, Open Library, or Community PDFs..."
+                       class="w-full text-base pl-10 pr-9 py-2.5 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917] placeholder-[#57534E] shadow-[2px_2px_0px_#1C1917] focus:bg-[#FFFDF7] focus:outline-none" />
+                @if (!string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    <button type="button"
+                            @onclick="ClearSearch"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-[#57534E] hover:text-[#1C1917] font-bold">
+                        &#x2715;
+                    </button>
+                }
+            </div>
+            <button type="submit"
+                    class="ink-btn px-5 py-2.5 text-sm font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
+                Search
+            </button>
+        </form>
+
+        <button type="button"
+                @onclick="TriggerUploadDrawer"
+                class="ink-btn inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-comic font-bold uppercase bg-[#D93829] hover:bg-[#c22e20] text-[#FFFDF7] rounded-sm whitespace-nowrap">
+            <span>+ Upload PDF</span>
+        </button>
+    </div>
+
+    <!-- Project Gutenberg & Open Library Bookshelf Tags -->
+    <div class="mb-8 pb-5 border-b-2 border-dashed border-[#1C1917]/25">
+        <div class="flex items-center justify-between mb-2.5">
+            <span class="font-mono text-xs font-bold uppercase tracking-wider text-[#57534E]">
+                Bookshelves &amp; Subjects (@(BookGenres.Filters.Count - 1) Gutenberg Categories):
+            </span>
+            <button type="button"
+                    @onclick="() => showAllTags = !showAllTags"
+                    class="font-mono text-xs font-bold text-[#D93829] hover:underline">
+                @(showAllTags ? "Show Fewer Tags \u25B2" : $"Show All {BookGenres.Filters.Count} Tags \u25BC")
+            </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            @foreach (var genre in VisibleGenres)
             {
                 <button type="button"
                         @onclick="() => SelectCategory(genre)"
-                        class='px-3.5 py-2 rounded-sm uppercase tracking-wider transition-all whitespace-nowrap @(selectedCategory == genre ? "bg-[#C8963E] text-[#0F0E0D] font-bold shadow-md" : "bg-[#181614] border border-[#2E2A25] text-[#9E9587] hover:border-[#8C6D3F] hover:text-[#EDE6D6]")'>
+                        class='ink-btn px-3 py-1 rounded-sm text-xs font-mono font-bold uppercase transition-all @(selectedCategory == genre ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FFFDF7] hover:bg-[#F4C430]/40 text-[#1C1917]")'>
                     @genre
                 </button>
             }
         </div>
-
-        <div class="flex items-center gap-3 flex-1 lg:max-w-lg">
-            <form @onsubmit="ApplySearch" class="relative flex-1 flex items-center gap-2">
-                <div class="relative flex-1">
-                    <svg class="w-4 h-4 text-[#9E9587] absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input type="text"
-                           @bind="searchQuery"
-                           placeholder="Search any book, author, or subject across the web..."
-                           class="w-full text-xs pl-9 pr-8 py-2.5 rounded-sm bg-[#181614] border border-[#2E2A25] text-[#EDE6D6] placeholder-[#9E9587] focus:border-[#C8963E] focus:outline-none transition-colors" />
-                    @if (!string.IsNullOrWhiteSpace(searchQuery))
-                    {
-                        <button type="button"
-                                @onclick="ClearSearch"
-                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9E9587] hover:text-[#EDE6D6]">
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    }
-                </div>
-                <button type="submit"
-                        class="px-3.5 py-2.5 text-xs font-mono uppercase tracking-wider bg-[#181614] hover:bg-[#201E1A] border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
-                    Search
-                </button>
-            </form>
-
-            <button type="button"
-                    @onclick="TriggerUploadDrawer"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm whitespace-nowrap">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Upload PDF</span>
-            </button>
-        </div>
     </div>
 
+    <!-- Active Filter Status Bar -->
     @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedCategory != "All")
     {
-        <div class="flex items-center justify-between mb-6 text-xs font-mono text-[#9E9587]">
+        <div class="flex items-center justify-between mb-5 px-4 py-2.5 bg-[#F2EAD8] border-2 border-[#1C1917] rounded-sm text-xs font-mono">
             <span>
-                Showing @books.Count editions
-                @if (selectedCategory != "All") { <span>in <strong class="text-[#C8963E]">@selectedCategory</strong></span> }
-                @if (!string.IsNullOrWhiteSpace(searchQuery)) { <span>matching "<strong class="text-[#EDE6D6]">@searchQuery</strong>"</span> }
+                Shelf: <strong class="text-[#D93829]">@selectedCategory</strong>
+                @if (!string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    <span> &bull; Query: "<strong>@searchQuery</strong>"</span>
+                }
+                <span> (@books.Count editions loaded)</span>
             </span>
             <button type="button"
                     @onclick="ResetFilters"
-                    class="text-[#C8963E] hover:underline uppercase text-[11px]">
-                Reset Filters
+                    class="font-bold text-[#D93829] hover:underline uppercase">
+                Reset Shelf
             </button>
         </div>
     }
 
-    @if (isLoading)
+    <!-- Book Grid + YouTube-Style Skeleton Loader -->
+    @if (isInitialLoading && books.Count == 0)
     {
-        <div class="py-20 text-center">
-            <div class="w-8 h-8 mx-auto mb-3 border-2 border-[#C8963E] border-t-transparent rounded-full animate-spin"></div>
-            <p class="font-mono text-xs text-[#9E9587] uppercase tracking-widest">
-                Gathering editions from Community Shelf, Project Gutenberg &amp; Open Library...
-            </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (int i = 0; i < 12; i++)
+            {
+                <BookCardSkeleton />
+            }
         </div>
     }
     else if (books.Count == 0)
     {
-        <div class="max-w-md mx-auto my-16 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center">
-            <h3 class="font-serif text-xl font-bold text-[#EDE6D6] mb-1">No Editions Found</h3>
-            <p class="text-xs text-[#9E9587] mb-4">
-                No books matched your filter or query. Try another search term or upload a rare PDF copy.
+        <div class="max-w-md mx-auto my-12 p-8 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm text-center">
+            <h3 class="font-comic text-2xl font-bold text-[#1C1917] mb-2">No Index Cards Found</h3>
+            <p class="text-base text-[#57534E] mb-5">
+                Nothing turned up on that shelf. Try another subject tag or upload a rare PDF copy!
             </p>
             <button type="button"
                     @onclick="ResetFilters"
-                    class="px-4 py-2 text-xs font-mono uppercase bg-[#0F0E0D] border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
-                Show All Books
+                    class="ink-btn px-5 py-2 text-sm font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                Back to Top Books
             </button>
         </div>
     }
@@ -161,6 +206,24 @@
                           OnDownload="b => DownloadBook(b, null)"
                           OnEdit="OpenEditModal"
                           OnSeal="PromptSeal" />
+            }
+
+            @if (isLoadingMore)
+            {
+                @for (int i = 0; i < 6; i++)
+                {
+                    <BookCardSkeleton />
+                }
+            }
+        </div>
+
+        <!-- Invisible Early Scroll Sentinel (No Button) -->
+        <div @ref="scrollSentinel" class="h-12 mt-6 flex items-center justify-center">
+            @if (!hasMorePages)
+            {
+                <p class="font-mono text-xs text-[#57534E]">
+                    &mdash; End of shelf (@books.Count books) &mdash;
+                </p>
             }
         </div>
     }
@@ -187,21 +250,21 @@
 
 @if (isSealPromptOpen && bookToSeal != null)
 {
-    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-in">
-        <div class="w-full max-w-md bg-[#181614] border border-[#9E332D] rounded-sm p-6 space-y-4 candle-glow">
-            <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">Delete Book</h3>
-            <p class="text-xs text-[#9E9587]">
-                Deleting <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> removes it from the public catalog. You can restore it anytime from Site Audit.
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4 animate-modal-in">
+        <div class="w-full max-w-md bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm p-6 space-y-4">
+            <h3 class="font-comic text-2xl font-bold text-[#D93829]">Remove Index Card?</h3>
+            <p class="text-base text-[#1C1917]">
+                Deleting <strong>@bookToSeal.Title</strong> removes it from the public shelf. You can restore it anytime from Site Audit.
             </p>
             <div>
-                <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Reason:</label>
+                <label class="block text-xs font-mono font-bold uppercase text-[#57534E] mb-1">Reason:</label>
                 <input type="text"
                        @bind="sealReason"
-                       class="w-full text-xs p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#9E332D] focus:outline-none" />
+                       class="w-full text-sm p-2.5 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917] text-[#1C1917] focus:outline-none" />
             </div>
-            <div class="flex items-center justify-end gap-3 pt-3">
-                <button type="button" @onclick="() => isSealPromptOpen = false" class="px-3 py-1.5 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">Cancel</button>
-                <button type="button" @onclick="ConfirmSealBook" class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm">Delete Book</button>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" @onclick="() => isSealPromptOpen = false" class="ink-btn px-4 py-1.5 text-xs font-mono font-bold uppercase bg-[#FFFDF7] text-[#1C1917] rounded-sm">Cancel</button>
+                <button type="button" @onclick="ConfirmSealBook" class="ink-btn px-4 py-1.5 text-xs font-mono font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">Confirm Delete</button>
             </div>
         </div>
     </div>
@@ -212,7 +275,17 @@
     private (int TotalBooks, int CommunityPdfs, int TotalDownloads, int TotalLogs) stats = (0, 0, 0, 0);
     private string selectedCategory = "All";
     private string searchQuery = "";
-    private bool isLoading = true;
+    private bool showAllTags = false;
+
+    private bool isInitialLoading = true;
+    private bool isLoadingMore = false;
+    private bool hasMorePages = true;
+    private int currentPage = 1;
+    private int loadVersion = 0;
+
+    private ElementReference scrollSentinel;
+    private DotNetObjectReference<Home>? dotNetRef;
+    private CancellationTokenSource? loadCts;
 
     private bool isReaderOpen = false;
     private Book? selectedBookForReader;
@@ -227,46 +300,96 @@
     private Book? bookToSeal;
     private string sealReason = "";
 
+    private IEnumerable<string> VisibleGenres =>
+        showAllTags ? BookGenres.Filters : BookGenres.Filters.Take(11);
+
     protected override async Task OnInitializedAsync()
     {
         AuthState.OnChange += HandleAuthStateChange;
-        await LoadCatalogAsync();
+        await LoadFirstPageAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (books.Count > 0 && hasMorePages)
+        {
+            dotNetRef ??= DotNetObjectReference.Create(this);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("EveryPageLibrary.observeSentinel", scrollSentinel, dotNetRef);
+            }
+            catch
+            {
+                // Ignore if sentinel is not yet mounted
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnScrollBottomReached()
+    {
+        if (!isInitialLoading && !isLoadingMore && hasMorePages)
+        {
+            await LoadNextPageAsync();
+        }
     }
 
     private void HandleAuthStateChange() => InvokeAsync(StateHasChanged);
 
-    private async Task LoadCatalogAsync()
+    private async Task LoadFirstPageAsync()
     {
-        isLoading = true;
+        loadCts?.Cancel();
+        loadCts = new CancellationTokenSource();
+        var token = loadCts.Token;
+        var version = ++loadVersion;
+
+        isInitialLoading = true;
+        isLoadingMore = false;
+        currentPage = 1;
+        hasMorePages = true;
+        books.Clear();
+        StateHasChanged();
+
         try
         {
             var localTask = ArchiveService.GetBooksAsync(selectedCategory, searchQuery, 60);
-            var webTask = FederatedBooks.SearchAsync(searchQuery, selectedCategory);
             var statsTask = ArchiveService.GetArchiveStatsAsync();
 
-            await Task.WhenAll(localTask, webTask, statsTask);
+            var localBooks = await localTask;
+            if (token.IsCancellationRequested || version != loadVersion) return;
 
-            var localBooks = localTask.Result;
-            var webBooks = webTask.Result;
-            stats = statsTask.Result;
-
-            var indexedExternalIds = new HashSet<string>(
-                localBooks.Where(b => !string.IsNullOrWhiteSpace(b.ExternalId)).Select(b => b.ExternalId!),
-                StringComparer.OrdinalIgnoreCase);
-
-            var merged = new List<Book>(localBooks.Count + webBooks.Count);
-            merged.AddRange(localBooks);
-
-            foreach (var external in webBooks)
+            if (localBooks.Count > 0)
             {
-                if (!string.IsNullOrWhiteSpace(external.ExternalId) && indexedExternalIds.Contains(external.ExternalId))
-                {
-                    continue;
-                }
-                merged.Add(external);
+                books = new List<Book>(localBooks);
+                isInitialLoading = false;
+                StateHasChanged();
             }
 
-            books = merged;
+            // Immediately start background prefetch of Page 2 in parallel with Page 1
+            _ = FederatedBooks.PrefetchPageAsync(searchQuery, selectedCategory, page: 2, token);
+
+            var webBooks = await FederatedBooks.SearchPagedAsync(
+                searchQuery,
+                selectedCategory,
+                page: 1,
+                onPartialBatchReady: partial =>
+                {
+                    if (token.IsCancellationRequested || version != loadVersion) return;
+                    isInitialLoading = false;
+                    MergeAndRender(localBooks, partial);
+                },
+                cancellationToken: token);
+
+            if (token.IsCancellationRequested || version != loadVersion) return;
+
+            isInitialLoading = false;
+            MergeAndRender(localBooks, webBooks);
+            hasMorePages = webBooks.Count >= 8;
+            stats = await statsTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by newer search/filter
         }
         catch (Exception ex)
         {
@@ -274,29 +397,127 @@
         }
         finally
         {
-            isLoading = false;
+            if (!token.IsCancellationRequested && version == loadVersion)
+            {
+                isInitialLoading = false;
+                StateHasChanged();
+            }
         }
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        if (isLoadingMore || isInitialLoading || !hasMorePages) return;
+
+        var version = loadVersion;
+        var nextPage = currentPage + 1;
+        var isAlreadyCached = FederatedBooks.IsCached(searchQuery, selectedCategory, nextPage);
+
+        // Only show skeleton cards if the background prefetch hasn't finished yet
+        isLoadingMore = true;
+        if (!isAlreadyCached)
+        {
+            StateHasChanged();
+        }
+
+        try
+        {
+            var moreBooks = await FederatedBooks.SearchPagedAsync(
+                searchQuery,
+                selectedCategory,
+                nextPage,
+                onPartialBatchReady: partial =>
+                {
+                    if (version != loadVersion) return;
+                    AppendUniqueBooks(partial);
+                    InvokeAsync(StateHasChanged);
+                });
+
+            if (version != loadVersion) return;
+
+            if (moreBooks.Count == 0)
+            {
+                hasMorePages = false;
+            }
+            else
+            {
+                currentPage = nextPage;
+                AppendUniqueBooks(moreBooks);
+
+                // Prefetch the following page right away so scrolling stays instantaneous
+                _ = FederatedBooks.PrefetchPageAsync(searchQuery, selectedCategory, currentPage + 1);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading page {nextPage}: {ex.Message}");
+        }
+        finally
+        {
+            if (version == loadVersion)
+            {
+                isLoadingMore = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void AppendUniqueBooks(List<Book> incoming)
+    {
+        var existingKeys = new HashSet<string>(
+            books.Select(b => !string.IsNullOrWhiteSpace(b.ExternalId) ? b.ExternalId! : $"{b.Title}|{b.Author}"),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in incoming)
+        {
+            var key = !string.IsNullOrWhiteSpace(item.ExternalId) ? item.ExternalId! : $"{item.Title}|{item.Author}";
+            if (existingKeys.Add(key))
+            {
+                books.Add(item);
+            }
+        }
+    }
+
+    private void MergeAndRender(List<Book> localBooks, List<Book> webBooks)
+    {
+        var seenExternal = new HashSet<string>(
+            localBooks.Where(b => !string.IsNullOrWhiteSpace(b.ExternalId)).Select(b => b.ExternalId!),
+            StringComparer.OrdinalIgnoreCase);
+
+        var combined = new List<Book>(localBooks.Count + webBooks.Count);
+        combined.AddRange(localBooks);
+
+        foreach (var ext in webBooks)
+        {
+            if (!string.IsNullOrWhiteSpace(ext.ExternalId) && !seenExternal.Add(ext.ExternalId))
+                continue;
+
+            combined.Add(ext);
+        }
+
+        books = combined;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task SelectCategory(string category)
     {
         selectedCategory = category;
-        await LoadCatalogAsync();
+        await LoadFirstPageAsync();
     }
 
-    private async Task ApplySearch() => await LoadCatalogAsync();
+    private async Task ApplySearch() => await LoadFirstPageAsync();
 
     private async Task ClearSearch()
     {
         searchQuery = "";
-        await LoadCatalogAsync();
+        await LoadFirstPageAsync();
     }
 
     private async Task ResetFilters()
     {
         selectedCategory = "All";
         searchQuery = "";
-        await LoadCatalogAsync();
+        await LoadFirstPageAsync();
     }
 
     private void OpenReader(Book book)
@@ -348,22 +569,7 @@
             }
             else
             {
-                var manuscript = $@"================================================================================
-EVERYPAGE LIBRARY - OPEN DIGITAL EDITION
-================================================================================
-
-TITLE:       {book.Title}
-AUTHOR:      {book.Author}
-GENRE:       {book.GenreLabel}
-SOURCE:      {book.SourceBadge}
-
---------------------------------------------------------------------------------
-DESCRIPTION:
-{book.Synopsis}
---------------------------------------------------------------------------------
-
-{book.ContentText}
-";
+                var manuscript = $"EVERYPAGE LIBRARY\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.Synopsis}\n\n{book.ContentText}";
                 await JSRuntime.InvokeVoidAsync("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
             }
 
@@ -385,16 +591,12 @@ DESCRIPTION:
     private void TriggerUploadDrawer()
     {
         if (AuthState.IsAuthenticated)
-        {
             isUploadDrawerOpen = true;
-        }
         else
-        {
             isAuthModalOpen = true;
-        }
     }
 
-    private async Task HandleTomeInscribed(Book newBook) => await LoadCatalogAsync();
+    private async Task HandleTomeInscribed(Book newBook) => await LoadFirstPageAsync();
 
     private void HandleAuthenticated()
     {
@@ -411,7 +613,7 @@ DESCRIPTION:
     private async Task HandleBookUpdated(Book updated)
     {
         isEditModalOpen = false;
-        await LoadCatalogAsync();
+        await LoadFirstPageAsync();
     }
 
     private void PromptSeal(Book book)
@@ -424,14 +626,12 @@ DESCRIPTION:
     private async Task ConfirmSealBook()
     {
         if (bookToSeal == null || !AuthState.IsAuditor) return;
-
         var user = AuthState.CurrentUser!;
-        var success = await ArchiveService.SoftDeleteBookAsync(bookToSeal.Id, user.Username, user.Role, sealReason);
-        if (success)
+        if (await ArchiveService.SoftDeleteBookAsync(bookToSeal.Id, user.Username, user.Role, sealReason))
         {
             isSealPromptOpen = false;
             bookToSeal = null;
-            await LoadCatalogAsync();
+            await LoadFirstPageAsync();
         }
     }
 
@@ -442,5 +642,16 @@ DESCRIPTION:
         return string.IsNullOrWhiteSpace(cleaned) ? "EveryPage_Book" : cleaned;
     }
 
-    public void Dispose() => AuthState.OnChange -= HandleAuthStateChange;
+    public async ValueTask DisposeAsync()
+    {
+        AuthState.OnChange -= HandleAuthStateChange;
+        loadCts?.Cancel();
+        loadCts?.Dispose();
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("EveryPageLibrary.disconnectSentinel");
+        }
+        catch { }
+        dotNetRef?.Dispose();
+    }
 }

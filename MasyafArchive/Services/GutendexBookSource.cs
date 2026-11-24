@@ -10,9 +10,6 @@ using MasyafArchive.Models;
 
 namespace MasyafArchive.Services;
 
-/// <summary>
-/// Reads the public-domain Project Gutenberg catalog through the Gutendex API.
-/// </summary>
 public class GutendexBookSource
 {
     private const string BaseUrl = "https://gutendex.com/books";
@@ -30,25 +27,23 @@ public class GutendexBookSource
         _http = http;
     }
 
-    /// <summary>Searches Gutenberg by free-text query.</summary>
-    public Task<List<Book>> SearchAsync(string query, string? genre, int limit, CancellationToken cancellationToken = default)
+    public Task<List<Book>> SearchAsync(string query, string? genre, int limit = 32, int page = 1, CancellationToken cancellationToken = default)
     {
-        var url = $"{BaseUrl}/?search={Uri.EscapeDataString(query)}";
+        var url = $"{BaseUrl}/?search={Uri.EscapeDataString(query)}&page={Math.Max(1, page)}";
         return FetchAsync(url, genre, limit, cancellationToken);
     }
 
-    /// <summary>Fetches works tagged with a subject / topic, e.g. "Philosophy".</summary>
-    public Task<List<Book>> BrowseTopicAsync(string topic, string? genre, int limit, CancellationToken cancellationToken = default)
+    public Task<List<Book>> BrowseTopicAsync(string genre, int limit = 32, int page = 1, CancellationToken cancellationToken = default)
     {
-        var url = $"{BaseUrl}/?topic={Uri.EscapeDataString(topic)}";
-        return FetchAsync(url, genre ?? topic, limit, cancellationToken);
+        var topic = BookGenres.ToGutendexTopic(genre);
+        var url = $"{BaseUrl}/?topic={Uri.EscapeDataString(topic)}&sort=popular&page={Math.Max(1, page)}";
+        return FetchAsync(url, genre, limit, cancellationToken);
     }
 
-    /// <summary>Most downloaded works â€” used to fill the shelf on first load.</summary>
-    public Task<List<Book>> GetPopularAsync(string? genre, int limit, CancellationToken cancellationToken = default)
+    public Task<List<Book>> GetPopularAsync(int limit = 32, int page = 1, CancellationToken cancellationToken = default)
     {
-        var url = $"{BaseUrl}/?sort=popular";
-        return FetchAsync(url, genre, limit, cancellationToken);
+        var url = $"{BaseUrl}/?sort=popular&page={Math.Max(1, page)}";
+        return FetchAsync(url, null, limit, cancellationToken);
     }
 
     private async Task<List<Book>> FetchAsync(string url, string? genre, int limit, CancellationToken cancellationToken)
@@ -57,9 +52,7 @@ public class GutendexBookSource
         {
             var payload = await _http.GetFromJsonAsync<GutendexResponse>(url, JsonOptions, cancellationToken);
             if (payload?.Results == null)
-            {
                 return new List<Book>();
-            }
 
             return payload.Results
                 .Select(result => Map(result, genre))
@@ -78,12 +71,10 @@ public class GutendexBookSource
     private static Book? Map(GutendexBook result, string? genre)
     {
         if (string.IsNullOrWhiteSpace(result.Title))
-        {
             return null;
-        }
 
         var subjects = result.Subjects
-            .Where(subject => !string.IsNullOrWhiteSpace(subject))
+            .Where(s => !string.IsNullOrWhiteSpace(s))
             .Take(4)
             .ToList();
 
@@ -94,7 +85,7 @@ public class GutendexBookSource
             Category = BookGenres.ToStorage(genre ?? InferGenre(result.Subjects, result.Bookshelves)),
             Synopsis = subjects.Count > 0
                 ? string.Join(" \u00B7 ", subjects)
-                : "A public-domain work from the Project Gutenberg collection.",
+                : "A classic public-domain edition from the Project Gutenberg library.",
             PublicationYear = string.Empty,
             CoverUrl = PickFormat(result.Formats, "image/jpeg"),
             EpubUrl = PickFormat(result.Formats, "application/epub+zip"),
@@ -112,35 +103,26 @@ public class GutendexBookSource
     private static string? PickFormat(Dictionary<string, string> formats, string key)
     {
         if (formats.TryGetValue(key, out var exact) && !string.IsNullOrWhiteSpace(exact))
-        {
             return exact;
-        }
 
         foreach (var pair in formats)
         {
             if (pair.Key.StartsWith(key, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(pair.Value))
-            {
                 return pair.Value;
-            }
         }
 
         return null;
     }
 
-    /// <summary>Gutenberg gives "Carroll, Lewis" â€” flip it to "Lewis Carroll".</summary>
     private static string FormatAuthor(string? rawName)
     {
         if (string.IsNullOrWhiteSpace(rawName))
-        {
             return "Unknown author";
-        }
 
         var name = rawName.Trim();
         var commaIndex = name.IndexOf(',');
         if (commaIndex <= 0)
-        {
             return name;
-        }
 
         var last = name[..commaIndex].Trim();
         var first = name[(commaIndex + 1)..].Trim();
@@ -153,17 +135,24 @@ public class GutendexBookSource
 
         return haystack switch
         {
+            _ when haystack.Contains("science fiction") => "Science Fiction",
+            _ when haystack.Contains("fantasy") => "Fantasy",
+            _ when haystack.Contains("detective") || haystack.Contains("mystery") => "Mystery & Detective",
+            _ when haystack.Contains("horror") || haystack.Contains("gothic") => "Horror & Gothic",
+            _ when haystack.Contains("romance") || haystack.Contains("love stories") => "Romance",
+            _ when haystack.Contains("adventure") => "Adventure",
             _ when haystack.Contains("philosoph") => "Philosophy",
             _ when haystack.Contains("history") || haystack.Contains("historical") => "History",
-            _ when haystack.Contains("science") || haystack.Contains("physics")
-                   || haystack.Contains("chemistry") || haystack.Contains("biology") => "Science",
+            _ when haystack.Contains("science") || haystack.Contains("physics") || haystack.Contains("biology") => "Science",
+            _ when haystack.Contains("psycholog") => "Psychology",
+            _ when haystack.Contains("poetry") || haystack.Contains("poems") => "Poetry",
+            _ when haystack.Contains("drama") || haystack.Contains("plays") => "Drama",
+            _ when haystack.Contains("mytholog") || haystack.Contains("folklore") => "Mythology & Folklore",
+            _ when haystack.Contains("children") || haystack.Contains("juvenile") => "Children's",
             _ when haystack.Contains("biograph") || haystack.Contains("autobiograph") => "Biography",
-            _ when haystack.Contains("technology") || haystack.Contains("engineering")
-                   || haystack.Contains("mechanic") => "Technology",
-            _ when haystack.Contains("fiction") || haystack.Contains("novel")
-                   || haystack.Contains("short stories") => "Fiction",
+            _ when haystack.Contains("technology") || haystack.Contains("engineering") => "Technology",
+            _ when haystack.Contains("travel") || haystack.Contains("voyages") => "Travel",
             _ => "Literature"
         };
     }
 }
-

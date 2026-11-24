@@ -1,11 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace MasyafArchive.Models;
-
-// ---------------------------------------------------------------------------
-// Gutendex (https://gutendex.com) — public-domain catalog backed by Project Gutenberg.
-// ---------------------------------------------------------------------------
 
 public class GutendexResponse
 {
@@ -52,10 +48,6 @@ public class GutendexAuthor
     public int? DeathYear { get; set; }
 }
 
-// ---------------------------------------------------------------------------
-// Open Library (https://openlibrary.org) — Internet Archive full-text search.
-// ---------------------------------------------------------------------------
-
 public class OpenLibrarySearchResponse
 {
     [JsonPropertyName("numFound")]
@@ -75,6 +67,9 @@ public class OpenLibraryDoc
 
     [JsonPropertyName("first_publish_year")]
     public int? FirstPublishYear { get; set; }
+
+    [JsonPropertyName("edition_count")]
+    public int EditionCount { get; set; }
 
     [JsonPropertyName("cover_i")]
     public long? CoverId { get; set; }
