@@ -3,6 +3,8 @@
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
 @inject FederatedBookService FederatedBooks
+@inject WikisourceBookSource Wikisource
+@inject InternetArchiveBookSource InternetArchive
 @inject AuthStateService AuthState
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
@@ -92,7 +94,6 @@
 
 <!-- Main Reading Hall -->
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Search Bar + Upload PDF Button -->
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
         <form @onsubmit="ApplySearch" class="flex-1 flex items-center gap-2">
             <div class="relative flex-1">
@@ -102,7 +103,7 @@
                 </svg>
                 <input type="text"
                        @bind="searchQuery"
-                       placeholder="Search Project Gutenberg, Open Library, or Community PDFs..."
+                       placeholder="Search Internet Archive, Open Library, Project Gutenberg, Wikisource..."
                        class="w-full text-base pl-10 pr-9 py-2.5 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917] placeholder-[#57534E] shadow-[2px_2px_0px_#1C1917] focus:bg-[#FFFDF7] focus:outline-none" />
                 @if (!string.IsNullOrWhiteSpace(searchQuery))
                 {
@@ -126,11 +127,11 @@
         </button>
     </div>
 
-    <!-- Project Gutenberg & Open Library Bookshelf Tags -->
+    <!-- Bookshelf Tags -->
     <div class="mb-8 pb-5 border-b-2 border-dashed border-[#1C1917]/25">
         <div class="flex items-center justify-between mb-2.5">
             <span class="font-mono text-xs font-bold uppercase tracking-wider text-[#57534E]">
-                Bookshelves &amp; Subjects (@(BookGenres.Filters.Count - 1) Gutenberg Categories):
+                Bookshelves &amp; Subjects (@(BookGenres.Filters.Count - 1) Categories):
             </span>
             <button type="button"
                     @onclick="() => showAllTags = !showAllTags"
@@ -151,7 +152,6 @@
         </div>
     </div>
 
-    <!-- Active Filter Status Bar -->
     @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedCategory != "All")
     {
         <div class="flex items-center justify-between mb-5 px-4 py-2.5 bg-[#F2EAD8] border-2 border-[#1C1917] rounded-sm text-xs font-mono">
@@ -171,7 +171,6 @@
         </div>
     }
 
-    <!-- Book Grid + YouTube-Style Skeleton Loader -->
     @if (isInitialLoading && books.Count == 0)
     {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -202,6 +201,7 @@
             {
                 <BookCard Book="book"
                           IsAuditor="@AuthState.IsAuditor"
+                          IsDownloading="@(downloadingBookKey == GetBookKey(book))"
                           OnRead="OpenReader"
                           OnDownload="b => DownloadBook(b, null)"
                           OnEdit="OpenEditModal"
@@ -217,7 +217,6 @@
             }
         </div>
 
-        <!-- Invisible Early Scroll Sentinel (No Button) -->
         <div @ref="scrollSentinel" class="h-12 mt-6 flex items-center justify-center">
             @if (!hasMorePages)
             {
@@ -228,6 +227,18 @@
         </div>
     }
 </div>
+
+<!-- Paper-Ink Download Status Toast -->
+@if (!string.IsNullOrWhiteSpace(downloadToastMessage))
+{
+    <div class="fixed bottom-5 right-5 z-50 max-w-sm bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm p-3.5 flex items-start gap-3 animate-modal-in">
+        <span class="w-2.5 h-2.5 mt-1.5 rounded-full shrink-0 @(downloadToastIsWarning ? "bg-[#D93829]" : "bg-[#F4C430]") border border-[#1C1917]"></span>
+        <div class="flex-1 text-xs font-mono text-[#1C1917] leading-snug">
+            @downloadToastMessage
+        </div>
+        <button type="button" @onclick="() => downloadToastMessage = null" class="text-xs font-mono font-bold text-[#57534E] hover:text-[#1C1917]">&#x2715;</button>
+    </div>
+}
 
 <CodexReaderModal Book="selectedBookForReader"
                   IsOpen="isReaderOpen"
@@ -283,6 +294,10 @@
     private int currentPage = 1;
     private int loadVersion = 0;
 
+    private string? downloadingBookKey;
+    private string? downloadToastMessage;
+    private bool downloadToastIsWarning;
+
     private ElementReference scrollSentinel;
     private DotNetObjectReference<Home>? dotNetRef;
     private CancellationTokenSource? loadCts;
@@ -318,10 +333,7 @@
             {
                 await JSRuntime.InvokeVoidAsync("EveryPageLibrary.observeSentinel", scrollSentinel, dotNetRef);
             }
-            catch
-            {
-                // Ignore if sentinel is not yet mounted
-            }
+            catch { }
         }
     }
 
@@ -335,6 +347,9 @@
     }
 
     private void HandleAuthStateChange() => InvokeAsync(StateHasChanged);
+
+    private static string GetBookKey(Book b) =>
+        !string.IsNullOrWhiteSpace(b.ExternalId) ? b.ExternalId! : $"{b.Id}|{b.Title}|{b.Author}";
 
     private async Task LoadFirstPageAsync()
     {
@@ -365,7 +380,6 @@
                 StateHasChanged();
             }
 
-            // Immediately start background prefetch of Page 2 in parallel with Page 1
             _ = FederatedBooks.PrefetchPageAsync(searchQuery, selectedCategory, page: 2, token);
 
             var webBooks = await FederatedBooks.SearchPagedAsync(
@@ -387,10 +401,7 @@
             hasMorePages = webBooks.Count >= 8;
             stats = await statsTask;
         }
-        catch (OperationCanceledException)
-        {
-            // Superseded by newer search/filter
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading catalog: {ex.Message}");
@@ -413,12 +424,8 @@
         var nextPage = currentPage + 1;
         var isAlreadyCached = FederatedBooks.IsCached(searchQuery, selectedCategory, nextPage);
 
-        // Only show skeleton cards if the background prefetch hasn't finished yet
         isLoadingMore = true;
-        if (!isAlreadyCached)
-        {
-            StateHasChanged();
-        }
+        if (!isAlreadyCached) StateHasChanged();
 
         try
         {
@@ -443,8 +450,6 @@
             {
                 currentPage = nextPage;
                 AppendUniqueBooks(moreBooks);
-
-                // Prefetch the following page right away so scrolling stays instantaneous
                 _ = FederatedBooks.PrefetchPageAsync(searchQuery, selectedCategory, currentPage + 1);
             }
         }
@@ -464,14 +469,10 @@
 
     private void AppendUniqueBooks(List<Book> incoming)
     {
-        var existingKeys = new HashSet<string>(
-            books.Select(b => !string.IsNullOrWhiteSpace(b.ExternalId) ? b.ExternalId! : $"{b.Title}|{b.Author}"),
-            StringComparer.OrdinalIgnoreCase);
-
+        var existingKeys = new HashSet<string>(books.Select(GetBookKey), StringComparer.OrdinalIgnoreCase);
         foreach (var item in incoming)
         {
-            var key = !string.IsNullOrWhiteSpace(item.ExternalId) ? item.ExternalId! : $"{item.Title}|{item.Author}";
-            if (existingKeys.Add(key))
+            if (existingKeys.Add(GetBookKey(item)))
             {
                 books.Add(item);
             }
@@ -499,129 +500,187 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private async Task SelectCategory(string category)
-    {
-        selectedCategory = category;
-        await LoadFirstPageAsync();
-    }
-
+    private async Task SelectCategory(string category) { selectedCategory = category; await LoadFirstPageAsync(); }
     private async Task ApplySearch() => await LoadFirstPageAsync();
-
-    private async Task ClearSearch()
-    {
-        searchQuery = "";
-        await LoadFirstPageAsync();
-    }
-
-    private async Task ResetFilters()
-    {
-        selectedCategory = "All";
-        searchQuery = "";
-        await LoadFirstPageAsync();
-    }
-
-    private void OpenReader(Book book)
-    {
-        selectedBookForReader = book;
-        isReaderOpen = true;
-    }
+    private async Task ClearSearch() { searchQuery = ""; await LoadFirstPageAsync(); }
+    private async Task ResetFilters() { selectedCategory = "All"; searchQuery = ""; await LoadFirstPageAsync(); }
+    private void OpenReader(Book book) { selectedBookForReader = book; isReaderOpen = true; }
 
     private async Task DownloadBook(Book book, string? preferredFormat)
     {
+        var key = GetBookKey(book);
+        if (downloadingBookKey == key) return;
+
+        downloadingBookKey = key;
+        downloadToastIsWarning = false;
+        downloadToastMessage = $"Checking download availability for \"{book.Title}\"...";
+        StateHasChanged();
+
         try
         {
             var safeTitle = SanitizeFileName(book.Title);
-            string? targetUrl = null;
-            string targetFileName = $"{safeTitle}.pdf";
+            bool success = false;
+            string toastText = "";
 
-            if (string.Equals(preferredFormat, "epub", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(book.EpubUrl))
+            // 1. Wikisource editions: save assembled proofread text directly as .txt
+            if (book.ExternalId?.StartsWith("ws-", StringComparison.OrdinalIgnoreCase) == true)
             {
-                targetUrl = book.EpubUrl;
-                targetFileName = $"{safeTitle}.epub";
-            }
-            else if (string.Equals(preferredFormat, "pdf", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(book.PdfUrl))
-            {
-                targetUrl = book.PdfUrl;
-                targetFileName = $"{safeTitle}.pdf";
-            }
-            else if (!string.IsNullOrWhiteSpace(book.PdfUrl))
-            {
-                targetUrl = book.PdfUrl;
-                targetFileName = $"{safeTitle}.pdf";
-            }
-            else if (!string.IsNullOrWhiteSpace(book.EpubUrl))
-            {
-                targetUrl = book.EpubUrl;
-                targetFileName = $"{safeTitle}.epub";
-            }
-            else if (!string.IsNullOrWhiteSpace(book.FileUrl))
-            {
-                targetUrl = book.FileUrl;
-                var ext = book.FileUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? ".pdf"
-                        : book.FileUrl.EndsWith(".epub", StringComparison.OrdinalIgnoreCase) ? ".epub"
-                        : ".txt";
-                targetFileName = $"{safeTitle}{ext}";
-            }
+                if (string.IsNullOrWhiteSpace(book.ContentText))
+                {
+                    book.ContentText = await Wikisource.FetchFullTextAsync(book.Title);
+                }
 
-            if (!string.IsNullOrWhiteSpace(targetUrl))
-            {
-                await JSRuntime.InvokeVoidAsync("EveryPageLibrary.downloadFile", targetUrl, targetFileName);
+                var manuscript = $"EVERYPAGE LIBRARY (WIKISOURCE)\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.ContentText}";
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
+                toastText = $"Saved \"{book.Title}.txt\" to your Downloads folder!";
             }
-            else
+            // 2. Local plain-text books
+            else if (!string.IsNullOrWhiteSpace(book.ContentText) && string.IsNullOrWhiteSpace(book.PdfUrl) && string.IsNullOrWhiteSpace(book.EpubUrl))
             {
                 var manuscript = $"EVERYPAGE LIBRARY\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.Synopsis}\n\n{book.ContentText}";
-                await JSRuntime.InvokeVoidAsync("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
+                toastText = $"Saved \"{book.Title}.txt\" to your Downloads folder!";
+            }
+            // 3. Community PDFs hosted on Supabase Storage -> direct PDF download
+            else if (book.IsIndexed && !string.IsNullOrWhiteSpace(book.PdfUrl))
+            {
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadDirectBlob", book.PdfUrl, $"{safeTitle}.pdf");
+                if (!success)
+                {
+                    success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", book.PdfUrl);
+                }
+                toastText = $"Downloaded \"{book.Title}.pdf\"!";
+            }
+            // 4. Internet Archive & Open Library editions with an Archive identifier -> 1-click download screen
+            else if (!string.IsNullOrWhiteSpace(ExtractArchiveIdentifier(book)))
+            {
+                var archiveId = ExtractArchiveIdentifier(book)!;
+                var resolved = await InternetArchive.ResolveDownloadFilesAsync(archiveId);
+
+                if (resolved.IsRestricted)
+                {
+                    downloadToastIsWarning = true;
+                    downloadToastMessage = $"\"{book.Title}\" is borrow-only on Internet Archive (not downloadable). Click \"Read Book\" to view online.";
+                    return;
+                }
+
+                book.PdfUrl = resolved.PdfUrl;
+                book.EpubUrl = resolved.EpubUrl;
+
+                var targetUrl = preferredFormat?.ToLowerInvariant() switch
+                {
+                    "pdf" when !string.IsNullOrWhiteSpace(resolved.PdfUrl) => resolved.PdfUrl!,
+                    "epub" when !string.IsNullOrWhiteSpace(resolved.EpubUrl) => resolved.EpubUrl!,
+                    _ => $"https://archive.org/details/{Uri.EscapeDataString(archiveId)}"
+                };
+
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                toastText = $"Opened Internet Archive download page for \"{book.Title}\" (1 click to save).";
+            }
+            // 5. Project Gutenberg -> open official ebook landing page (1 click to save EPUB/TXT)
+            else if (book.ExternalId?.StartsWith("pg-", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var pgId = book.ExternalId["pg-".Length..];
+                var targetUrl = !string.IsNullOrWhiteSpace(pgId)
+                    ? $"https://www.gutenberg.org/ebooks/{Uri.EscapeDataString(pgId)}"
+                    : book.FileUrl;
+
+                if (string.IsNullOrWhiteSpace(targetUrl))
+                {
+                    downloadToastIsWarning = true;
+                    downloadToastMessage = $"No download page found for \"{book.Title}\".";
+                    return;
+                }
+
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                toastText = $"Opened Project Gutenberg page for \"{book.Title}\" (1 click to save).";
+            }
+            // 6. DOAB Academic & any other source with a valid file/landing URL
+            else
+            {
+                var targetUrl = preferredFormat?.ToLowerInvariant() switch
+                {
+                    "pdf" when !string.IsNullOrWhiteSpace(book.PdfUrl) => book.PdfUrl,
+                    "epub" when !string.IsNullOrWhiteSpace(book.EpubUrl) => book.EpubUrl,
+                    _ => book.PdfUrl ?? book.EpubUrl ?? book.FileUrl
+                };
+
+                if (string.IsNullOrWhiteSpace(targetUrl))
+                {
+                    downloadToastIsWarning = true;
+                    downloadToastMessage = $"\"{book.Title}\" is a catalog-only record with no downloadable file.";
+                    return;
+                }
+
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                toastText = $"Opened download page for \"{book.Title}\" (1 click to save).";
             }
 
-            var actorName = AuthState.CurrentUser?.Username ?? "Guest reader";
-            var actorRole = AuthState.CurrentUser?.Role ?? "reader";
-            var persisted = await ArchiveService.RegisterDownloadAsync(book, actorName, actorRole);
+            if (success)
+            {
+                downloadToastIsWarning = false;
+                downloadToastMessage = toastText;
 
-            book.Id = persisted.Id;
-            book.DownloadCount = persisted.DownloadCount;
-            stats = (stats.TotalBooks, stats.CommunityPdfs, stats.TotalDownloads + 1, stats.TotalLogs);
-            StateHasChanged();
+                var actorName = AuthState.CurrentUser?.Username ?? "Guest reader";
+                var actorRole = AuthState.CurrentUser?.Role ?? "reader";
+                var persisted = await ArchiveService.RegisterDownloadAsync(book, actorName, actorRole);
+
+                book.Id = persisted.Id;
+                book.DownloadCount = persisted.DownloadCount;
+                stats = (stats.TotalBooks, stats.CommunityPdfs, stats.TotalDownloads + 1, stats.TotalLogs);
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Download failed: {ex.Message}");
+            Console.WriteLine($"Download action failed: {ex.Message}");
+            downloadToastIsWarning = true;
+            downloadToastMessage = $"Could not open download page for \"{book.Title}\".";
+        }
+        finally
+        {
+            downloadingBookKey = null;
+            StateHasChanged();
+            _ = AutoClearToastAsync();
+        }
+    }
+
+    private static string? ExtractArchiveIdentifier(Book book)
+    {
+        if (string.IsNullOrWhiteSpace(book.ExternalId))
+            return null;
+
+        if (book.ExternalId.StartsWith("ia-", StringComparison.OrdinalIgnoreCase))
+            return book.ExternalId["ia-".Length..];
+
+        if (book.ExternalId.StartsWith("ol-", StringComparison.OrdinalIgnoreCase) &&
+            !book.ExternalId.StartsWith("ol-works/", StringComparison.OrdinalIgnoreCase))
+            return book.ExternalId["ol-".Length..];
+
+        return null;
+    }
+
+    private async Task AutoClearToastAsync()
+    {
+        var snapshot = downloadToastMessage;
+        await Task.Delay(5000);
+        if (downloadToastMessage == snapshot)
+        {
+            downloadToastMessage = null;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
     private void TriggerUploadDrawer()
     {
-        if (AuthState.IsAuthenticated)
-            isUploadDrawerOpen = true;
-        else
-            isAuthModalOpen = true;
+        if (AuthState.IsAuthenticated) isUploadDrawerOpen = true;
+        else isAuthModalOpen = true;
     }
 
     private async Task HandleTomeInscribed(Book newBook) => await LoadFirstPageAsync();
-
-    private void HandleAuthenticated()
-    {
-        isAuthModalOpen = false;
-        StateHasChanged();
-    }
-
-    private void OpenEditModal(Book book)
-    {
-        bookToEdit = book;
-        isEditModalOpen = true;
-    }
-
-    private async Task HandleBookUpdated(Book updated)
-    {
-        isEditModalOpen = false;
-        await LoadFirstPageAsync();
-    }
-
-    private void PromptSeal(Book book)
-    {
-        bookToSeal = book;
-        sealReason = "Content moderation";
-        isSealPromptOpen = true;
-    }
+    private void HandleAuthenticated() { isAuthModalOpen = false; StateHasChanged(); }
+    private void OpenEditModal(Book book) { bookToEdit = book; isEditModalOpen = true; }
+    private async Task HandleBookUpdated(Book updated) { isEditModalOpen = false; await LoadFirstPageAsync(); }
+    private void PromptSeal(Book book) { bookToSeal = book; sealReason = "Content moderation"; isSealPromptOpen = true; }
 
     private async Task ConfirmSealBook()
     {
@@ -647,10 +706,7 @@
         AuthState.OnChange -= HandleAuthStateChange;
         loadCts?.Cancel();
         loadCts?.Dispose();
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("EveryPageLibrary.disconnectSentinel");
-        }
+        try { await JSRuntime.InvokeVoidAsync("EveryPageLibrary.disconnectSentinel"); }
         catch { }
         dotNetRef?.Dispose();
     }

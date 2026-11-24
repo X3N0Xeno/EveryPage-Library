@@ -8,12 +8,10 @@
     <meta name="description" content="EveryPage Library is a free, open digital library. Search community PDF uploads, Project Gutenberg and Open Library, then read online or download directly." />
     <base href="/" />
 
-    <!-- Handwritten Comic, Storybook Serif & Typewriter Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,500;0,700;1,500&family=Patrick+Hand&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -123,59 +121,46 @@
                 }
             },
 
-            downloadFile: async function (url, fileName) {
-                if (!url) return false;
-                try {
-                    const response = await fetch(url, { mode: 'cors' });
-                    if (!response.ok) throw new Error('HTTP ' + response.status);
-                    const blob = await response.blob();
-                    const objectUrl = URL.createObjectURL(blob);
-                    const anchor = document.createElement('a');
-                    anchor.href = objectUrl;
-                    anchor.download = fileName || 'book';
-                    document.body.appendChild(anchor);
-                    anchor.click();
-                    document.body.removeChild(anchor);
-                    setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 2000);
-                    return true;
-                } catch (error) {
-                    return window.EveryPageLibrary.downloadFromUrl(url, fileName);
-                }
+            _saveBlobToDisk: function (blob, fileName) {
+                var objectUrl = URL.createObjectURL(blob);
+                var anchor = document.createElement('a');
+                anchor.href = objectUrl;
+                anchor.download = fileName || 'EveryPage_Book';
+                anchor.style.display = 'none';
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+                setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 5000);
             },
 
-            downloadFromUrl: function (url, fileName) {
+            downloadDirectBlob: async function (url, fileName) {
                 try {
-                    const anchor = document.createElement('a');
-                    anchor.href = url;
-                    anchor.download = fileName || '';
-                    anchor.target = '_blank';
-                    anchor.rel = 'noopener';
-                    document.body.appendChild(anchor);
-                    anchor.click();
-                    document.body.removeChild(anchor);
+                    var response = await fetch(url, { mode: 'cors', redirect: 'follow' });
+                    if (!response.ok) return false;
+                    var blob = await response.blob();
+                    if (!blob || blob.size === 0) return false;
+                    this._saveBlobToDisk(blob, fileName);
                     return true;
-                } catch (error) {
-                    console.error('Download failed:', error);
+                } catch (err) {
                     return false;
                 }
             },
 
             downloadTextFile: function (fileName, content) {
                 try {
-                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                    const objectUrl = URL.createObjectURL(blob);
-                    const anchor = document.createElement('a');
-                    anchor.href = objectUrl;
-                    anchor.download = fileName;
-                    document.body.appendChild(anchor);
-                    anchor.click();
-                    document.body.removeChild(anchor);
-                    setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 2000);
+                    var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                    this._saveBlobToDisk(blob, fileName);
                     return true;
                 } catch (error) {
                     console.error('Text download failed:', error);
                     return false;
                 }
+            },
+
+            openSourcePage: function (url) {
+                if (!url) return false;
+                window.open(url, '_blank', 'noopener,noreferrer');
+                return true;
             }
         };
     </script>

@@ -12,6 +12,7 @@ namespace MasyafArchive.Services;
 public class InternetArchiveBookSource
 {
     private const string SearchEndpoint = "https://archive.org/advancedsearch.php";
+    private const string MetadataEndpoint = "https://archive.org/metadata";
     private const string SourceName = "Internet Archive";
 
     private readonly HttpClient _http;
@@ -20,6 +21,119 @@ public class InternetArchiveBookSource
     {
         _http = http;
     }
+
+    public async Task<(string? PdfUrl, string? EpubUrl, bool IsRestricted)> ResolveDownloadFilesAsync(
+        string identifier,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+            return (null, null, false);
+
+        var url = $"{MetadataEndpoint}/{Uri.EscapeDataString(identifier)}";
+
+        try
+        {
+            using var response = await _http.GetAsync(url, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return (null, null, false);
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+            bool itemAccessRestricted = false;
+            if (doc.RootElement.TryGetProperty("metadata", out var metaObj) &&
+                metaObj.ValueKind == JsonValueKind.Object)
+            {
+                var restrictedFlag = ReadFirstString(metaObj, "access-restricted-item");
+                if (string.Equals(restrictedFlag, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    itemAccessRestricted = true;
+                }
+
+                var collections = ReadStringList(metaObj, "collection");
+                if (collections.Any(c =>
+                    c.Equals("inlibrary", StringComparison.OrdinalIgnoreCase) ||
+                    c.Equals("lending", StringComparison.OrdinalIgnoreCase) ||
+                    c.Equals("printdisabled", StringComparison.OrdinalIgnoreCase)))
+                {
+                    itemAccessRestricted = true;
+                }
+            }
+
+            if (!doc.RootElement.TryGetProperty("files", out var filesArr) ||
+                filesArr.ValueKind != JsonValueKind.Array)
+            {
+                return (null, null, itemAccessRestricted);
+            }
+
+            var publicPdfs = new List<string>();
+            var publicEpubs = new List<string>();
+            bool sawRestrictedFile = itemAccessRestricted;
+
+            foreach (var file in filesArr.EnumerateArray())
+            {
+                var name = ReadFirstString(file, "name");
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                var format = ReadFirstString(file, "format") ?? string.Empty;
+                var isPrivate = string.Equals(ReadFirstString(file, "private"), "true", StringComparison.OrdinalIgnoreCase);
+
+                bool isDrmLocked = name.Contains("_lcp.", StringComparison.OrdinalIgnoreCase) ||
+                                   format.Contains("LCP", StringComparison.OrdinalIgnoreCase) ||
+                                   format.Contains("ACS", StringComparison.OrdinalIgnoreCase) ||
+                                   format.Contains("Encrypted", StringComparison.OrdinalIgnoreCase);
+
+                bool isPdf = name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
+                             format.Contains("PDF", StringComparison.OrdinalIgnoreCase);
+                bool isEpub = name.EndsWith(".epub", StringComparison.OrdinalIgnoreCase) ||
+                              format.Equals("EPUB", StringComparison.OrdinalIgnoreCase);
+
+                if ((isPrivate || isDrmLocked || itemAccessRestricted) && (isPdf || isEpub))
+                {
+                    sawRestrictedFile = true;
+                    continue;
+                }
+
+                if (isPdf)
+                {
+                    publicPdfs.Add(name);
+                }
+                else if (isEpub)
+                {
+                    publicEpubs.Add(name);
+                }
+            }
+
+            var bestPdf = publicPdfs
+                .OrderBy(n => n.EndsWith("_bw.pdf", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                .ThenBy(n => n.Length)
+                .FirstOrDefault();
+
+            var bestEpub = publicEpubs
+                .OrderBy(n => n.Length)
+                .FirstOrDefault();
+
+            var encodedId = Uri.EscapeDataString(identifier);
+            var pdfUrl = !string.IsNullOrWhiteSpace(bestPdf)
+                ? $"https://archive.org/download/{encodedId}/{EncodeRelativePath(bestPdf)}"
+                : null;
+            var epubUrl = !string.IsNullOrWhiteSpace(bestEpub)
+                ? $"https://archive.org/download/{encodedId}/{EncodeRelativePath(bestEpub)}"
+                : null;
+
+            bool isRestricted = pdfUrl == null && epubUrl == null && sawRestrictedFile;
+            return (pdfUrl, epubUrl, isRestricted);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[InternetArchiveBookSource] Metadata lookup failed ({identifier}): {ex.Message}");
+            return (null, null, false);
+        }
+    }
+
+    private static string EncodeRelativePath(string path) =>
+        string.Join("/", path.Split('/').Select(Uri.EscapeDataString));
 
     public Task<List<Book>> GetPopularAsync(int limit = 28, int page = 1, CancellationToken cancellationToken = default)
     {
