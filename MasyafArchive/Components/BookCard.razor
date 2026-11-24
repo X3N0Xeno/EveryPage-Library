@@ -2,7 +2,6 @@
 
 <div class="comic-panel group relative rounded-sm p-5 flex flex-col justify-between">
     <div>
-        <!-- Top Stamps: Genre & Source -->
         <div class="flex items-center justify-between gap-2 mb-3.5">
             <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wide uppercase rounded-sm border-2 border-[#1C1917] bg-[#F4C430] text-[#1C1917]">
                 @Book.GenreLabel
@@ -12,7 +11,6 @@
             </span>
         </div>
 
-        <!-- Cover + Title & Author -->
         <div class="flex gap-4 mb-3">
             @if (!string.IsNullOrWhiteSpace(Book.CoverUrl) && !coverLoadFailed)
             {
@@ -44,18 +42,16 @@
                         <span>@Book.PublicationYear</span>
                         <span class="mx-1">&bull;</span>
                     }
-                    <span>@(Book.IsIndexed ? $"Card #{Book.Id:D4}" : "Open Web")</span>
+                    <span>@(Book.IsIndexed ? $"Card #{Book.Id:D4}" : Book.SourceBadge)</span>
                 </p>
             </div>
         </div>
 
-        <!-- Synopsis -->
         <p class="text-sm text-[#57534E] line-clamp-3 leading-snug mb-4 font-hand">
             @(string.IsNullOrWhiteSpace(Book.Synopsis) ? "Open-access edition ready to read online or download straight to your desk." : Book.Synopsis)
         </p>
     </div>
 
-    <!-- Bottom Index Stats & Buttons -->
     <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 mt-2">
         <div class="flex items-center justify-between text-xs font-mono text-[#57534E] mb-3">
             <span class="flex items-center gap-1.5 font-bold">
@@ -64,7 +60,7 @@
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                @Book.DownloadCount.ToString("N0") @(Book.SourceBadge == "Open Library" ? "editions" : "reads")
+                @Book.DownloadCount.ToString("N0") @GetMetricLabel()
             </span>
 
             <div class="flex items-center gap-1">
@@ -147,12 +143,23 @@
 
     private bool HasTextDownload =>
         !string.IsNullOrWhiteSpace(Book.ContentText) ||
+        Book.SourceBadge == "Wikisource" ||
         (Book.FileUrl?.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) == true);
+
+    private string GetMetricLabel() => Book.SourceBadge switch
+    {
+        "Open Library" => "editions",
+        "Wikisource" => "words",
+        _ => "reads"
+    };
 
     private string GetSourceBadgeClass() => Book.SourceBadge switch
     {
         "Community PDF" => "bg-[#D93829] text-[#FFFDF7]",
+        "Internet Archive" => "bg-[#6BA4B8] text-[#1C1917]",
         "Project Gutenberg" => "bg-[#FFFDF7] text-[#1C1917]",
+        "Wikisource" => "bg-[#FEF08A] text-[#1C1917]",
+        "DOAB Academic" => "bg-[#DCFCE7] text-[#1C1917]",
         _ => "bg-[#F2EAD8] text-[#1C1917]"
     };
 }

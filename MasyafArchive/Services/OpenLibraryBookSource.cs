@@ -13,6 +13,7 @@ namespace MasyafArchive.Services;
 public class OpenLibraryBookSource
 {
     private const string SearchUrl = "https://openlibrary.org/search.json";
+    private const string Fields = "key,title,author_name,first_publish_year,edition_count,cover_i,ia,subject";
     private const string SourceName = "Open Library";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -29,26 +30,26 @@ public class OpenLibraryBookSource
         _http = http;
     }
 
-    public Task<List<Book>> GetPopularAsync(int limit = 32, int page = 1, CancellationToken cancellationToken = default)
+    public Task<List<Book>> GetPopularAsync(int limit = 28, int page = 1, CancellationToken cancellationToken = default)
     {
-        var url = $"{SearchUrl}?q=subject:classics&sort=editions&has_fulltext=true&limit={limit}&page={Math.Max(1, page)}";
+        var url = $"{SearchUrl}?q=subject:classics&sort=editions&has_fulltext=true&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
         return FetchAsync(url, "Classics", limit, cancellationToken);
     }
 
-    public Task<List<Book>> SearchAsync(string query, string? genre, int limit = 32, int page = 1, CancellationToken cancellationToken = default)
+    public Task<List<Book>> SearchAsync(string query, string? genre, int limit = 28, int page = 1, CancellationToken cancellationToken = default)
     {
         var fullQuery = !string.IsNullOrWhiteSpace(genre) && !genre.Equals("All", StringComparison.OrdinalIgnoreCase)
             ? $"{query} subject:{BookGenres.ToOpenLibrarySubject(genre)}"
             : query;
 
-        var url = $"{SearchUrl}?q={Uri.EscapeDataString(fullQuery)}&has_fulltext=true&limit={limit}&page={Math.Max(1, page)}";
+        var url = $"{SearchUrl}?q={Uri.EscapeDataString(fullQuery)}&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
         return FetchAsync(url, genre, limit, cancellationToken);
     }
 
-    public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 32, int page = 1, CancellationToken cancellationToken = default)
+    public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 28, int page = 1, CancellationToken cancellationToken = default)
     {
         var subject = BookGenres.ToOpenLibrarySubject(genre);
-        var url = $"{SearchUrl}?q={Uri.EscapeDataString($"subject:{subject}")}&sort=editions&has_fulltext=true&limit={limit}&page={Math.Max(1, page)}";
+        var url = $"{SearchUrl}?q={Uri.EscapeDataString($"subject:{subject}")}&sort=editions&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
         return FetchAsync(url, genre, limit, cancellationToken);
     }
 
@@ -94,7 +95,7 @@ public class OpenLibraryBookSource
             Category = BookGenres.ToStorage(genre ?? InferGenre(doc.Subject)),
             Synopsis = subjects.Count > 0
                 ? string.Join(" \u00B7 ", subjects)
-                : "A full-text scanned volume from the Open Library & Internet Archive collection.",
+                : "Cataloged edition from the Open Library & Internet Archive collection.",
             PublicationYear = doc.FirstPublishYear?.ToString() ?? string.Empty,
             CoverUrl = doc.CoverId.HasValue
                 ? $"https://covers.openlibrary.org/b/id/{doc.CoverId.Value}-M.jpg"
@@ -115,6 +116,7 @@ public class OpenLibraryBookSource
         else if (!string.IsNullOrWhiteSpace(doc.WorkKey))
         {
             book.ExternalId = $"ol-{doc.WorkKey!.TrimStart('/')}";
+            book.FileUrl = $"https://openlibrary.org{doc.WorkKey}";
         }
 
         return book;

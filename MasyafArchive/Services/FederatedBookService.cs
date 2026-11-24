@@ -9,18 +9,30 @@ namespace MasyafArchive.Services;
 
 public class FederatedBookService
 {
-    private const int PageSizePerSource = 32;
-    private static readonly TimeSpan SourceTimeout = TimeSpan.FromMilliseconds(4500);
+    private const int PageSizePerSource = 28;
+    private static readonly TimeSpan SourceTimeout = TimeSpan.FromMilliseconds(5000);
 
-    private readonly GutendexBookSource _gutendex;
+    private readonly InternetArchiveBookSource _internetArchive;
     private readonly OpenLibraryBookSource _openLibrary;
+    private readonly GutendexBookSource _gutendex;
+    private readonly WikisourceBookSource _wikisource;
+    private readonly DoabBookSource _doab;
+
     private readonly Dictionary<string, List<Book>> _pageCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Task<List<Book>>> _inFlight = new(StringComparer.OrdinalIgnoreCase);
 
-    public FederatedBookService(GutendexBookSource gutendex, OpenLibraryBookSource openLibrary)
+    public FederatedBookService(
+        InternetArchiveBookSource internetArchive,
+        OpenLibraryBookSource openLibrary,
+        GutendexBookSource gutendex,
+        WikisourceBookSource wikisource,
+        DoabBookSource doab)
     {
-        _gutendex = gutendex;
+        _internetArchive = internetArchive;
         _openLibrary = openLibrary;
+        _gutendex = gutendex;
+        _wikisource = wikisource;
+        _doab = doab;
     }
 
     public bool IsCached(string query, string? genre, int page)
@@ -91,18 +103,28 @@ public class FederatedBookService
 
             if (trimmed.Length > 0)
             {
-                pending.Add(WithTimeout(_openLibrary.SearchAsync(trimmed, hasGenre ? normalizedGenre : null, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_gutendex.SearchAsync(trimmed, hasGenre ? normalizedGenre : null, PageSizePerSource, page, cancellationToken), cancellationToken));
+                var g = hasGenre ? normalizedGenre : null;
+                pending.Add(WithTimeout(_internetArchive.SearchAsync(trimmed, g, PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_openLibrary.SearchAsync(trimmed, g, PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_gutendex.SearchAsync(trimmed, g, PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_wikisource.SearchAsync(trimmed, g, 18, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_doab.SearchAsync(trimmed, g, 16, page, cancellationToken), cancellationToken));
             }
             else if (hasGenre)
             {
+                pending.Add(WithTimeout(_internetArchive.BrowseSubjectAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
                 pending.Add(WithTimeout(_openLibrary.BrowseSubjectAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
                 pending.Add(WithTimeout(_gutendex.BrowseTopicAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_wikisource.BrowseSubjectAsync(normalizedGenre, 18, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_doab.BrowseSubjectAsync(normalizedGenre, 16, page, cancellationToken), cancellationToken));
             }
             else
             {
+                pending.Add(WithTimeout(_internetArchive.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
                 pending.Add(WithTimeout(_openLibrary.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
                 pending.Add(WithTimeout(_gutendex.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_wikisource.GetPopularAsync(18, page, cancellationToken), cancellationToken));
+                pending.Add(WithTimeout(_doab.GetPopularAsync(16, page, cancellationToken), cancellationToken));
             }
 
             var batches = new List<List<Book>>();
@@ -115,11 +137,11 @@ public class FederatedBookService
                 if (batch.Count > 0)
                 {
                     batches.Add(batch);
-                    onPartialBatchReady?.Invoke(InterleaveAndDedupe(batches));
+                    onPartialBatchReady?.Invoke(InterleaveAndRank(batches, trimmed));
                 }
             }
 
-            var finalMerged = InterleaveAndDedupe(batches);
+            var finalMerged = InterleaveAndRank(batches, trimmed);
             if (finalMerged.Count > 0)
             {
                 _pageCache[cacheKey] = finalMerged;
@@ -154,10 +176,10 @@ public class FederatedBookService
         return $"{q}|{g}|p{page}";
     }
 
-    private static List<Book> InterleaveAndDedupe(List<List<Book>> batches)
+    private static List<Book> InterleaveAndRank(List<List<Book>> batches, string query)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var merged = new List<Book>();
+        var interleaved = new List<Book>();
         var maxLen = batches.Count == 0 ? 0 : batches.Max(b => b.Count);
 
         for (int i = 0; i < maxLen; i++)
@@ -169,12 +191,27 @@ public class FederatedBookService
                 var key = BuildKey(book);
                 if (seen.Add(key))
                 {
-                    merged.Add(book);
+                    interleaved.Add(book);
                 }
             }
         }
 
-        return merged;
+        if (string.IsNullOrWhiteSpace(query))
+            return interleaved;
+
+        // Bubble strong title matches (like "No Longer Human") to the very top across all sources
+        return interleaved
+            .OrderByDescending(b => ScoreTitleMatch(b.Title, query))
+            .ToList();
+    }
+
+    private static int ScoreTitleMatch(string title, string query)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return 0;
+        if (title.Equals(query, StringComparison.OrdinalIgnoreCase)) return 3;
+        if (title.StartsWith(query, StringComparison.OrdinalIgnoreCase)) return 2;
+        if (title.Contains(query, StringComparison.OrdinalIgnoreCase)) return 1;
+        return 0;
     }
 
     private static string BuildKey(Book book)

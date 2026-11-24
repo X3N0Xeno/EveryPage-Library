@@ -2,6 +2,7 @@
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
+@inject WikisourceBookSource Wikisource
 
 @if (IsOpen && Book != null)
 {
@@ -101,21 +102,35 @@
                         </div>
 
                         <div class="max-w-2xl mx-auto @GetFontSizeClass() leading-relaxed space-y-5 font-serif text-[#1C1917]">
-                            @{
-                                var paragraphs = (Book.ContentText ?? string.Empty).Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-                            }
-                            @if (paragraphs.Length == 0)
+                            @if (isLoadingFullText)
                             {
-                                <div class="p-6 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] text-center space-y-2 font-hand">
-                                    <p class="text-lg font-bold">Hosted by @Book.SourceBadge</p>
-                                    <p class="text-base text-[#57534E]">Click any download button in the top bar to save this edition directly to your computer.</p>
+                                <div class="p-6 rounded-sm border-2 border-dashed border-[#1C1917]/40 bg-[#FAF6EC] text-center font-mono text-xs text-[#57534E]">
+                                    Pulling full text from @Book.SourceBadge...
                                 </div>
                             }
                             else
                             {
-                                @foreach (var p in paragraphs)
+                                var paragraphs = (Book.ContentText ?? string.Empty).Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+                                @if (paragraphs.Length == 0)
                                 {
-                                    <p>@p.Trim()</p>
+                                    <div class="p-6 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] text-center space-y-3 font-hand">
+                                        <p class="text-lg font-bold">Hosted by @Book.SourceBadge</p>
+                                        <p class="text-base text-[#57534E]">Click any download button in the top bar or open the source edition directly.</p>
+                                        @if (!string.IsNullOrWhiteSpace(Book.FileUrl))
+                                        {
+                                            <a href="@Book.FileUrl" target="_blank" rel="noopener"
+                                               class="ink-btn inline-block px-4 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                                                Open on @Book.SourceBadge &#x2197;
+                                            </a>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    @foreach (var p in paragraphs)
+                                    {
+                                        <p>@p.Trim()</p>
+                                    }
                                 }
                             }
                         </div>
@@ -209,6 +224,7 @@
 
     private List<BookComment> Comments { get; set; } = new();
     private bool isLoadingComments { get; set; } = false;
+    private bool isLoadingFullText { get; set; } = false;
     private string newCommentText { get; set; } = "";
     private bool isSubmittingComment { get; set; } = false;
     private string commentErrorMessage { get; set; } = "";
@@ -222,13 +238,22 @@
     {
         get
         {
-            if (Book?.ExternalId != null &&
-                Book.ExternalId.StartsWith("ol-", StringComparison.OrdinalIgnoreCase) &&
+            if (string.IsNullOrWhiteSpace(Book?.ExternalId))
+                return null;
+
+            if (Book.ExternalId.StartsWith("ia-", StringComparison.OrdinalIgnoreCase))
+            {
+                var archiveId = Book.ExternalId["ia-".Length..];
+                return $"{OpenLibraryBookSource.ArchiveEmbedBaseUrl}{archiveId}";
+            }
+
+            if (Book.ExternalId.StartsWith("ol-", StringComparison.OrdinalIgnoreCase) &&
                 !Book.ExternalId.StartsWith("ol-works/", StringComparison.OrdinalIgnoreCase))
             {
                 var archiveId = Book.ExternalId["ol-".Length..];
                 return $"{OpenLibraryBookSource.ArchiveEmbedBaseUrl}{archiveId}";
             }
+
             return null;
         }
     }
@@ -238,7 +263,23 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (IsOpen && Book != null) await LoadCommentsAsync();
+        if (IsOpen && Book != null)
+        {
+            await LoadCommentsAsync();
+            if (string.IsNullOrWhiteSpace(Book.ContentText) &&
+                Book.ExternalId?.StartsWith("ws-", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                isLoadingFullText = true;
+                try
+                {
+                    Book.ContentText = await Wikisource.FetchFullTextAsync(Book.Title);
+                }
+                finally
+                {
+                    isLoadingFullText = false;
+                }
+            }
+        }
     }
 
     private async Task LoadCommentsAsync()

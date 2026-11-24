@@ -87,4 +87,16 @@ public static class BookGenres
         "art & music" => "art",
         _ => genre.ToLowerInvariant().Replace(' ', '_')
     };
+
+    public static string ToInternetArchiveSubject(string genre) => genre.ToLowerInvariant() switch
+    {
+        "mystery & detective" => "mystery",
+        "horror & gothic" => "horror",
+        "mythology & folklore" => "mythology",
+        "children's" => "children",
+        "religion & spirituality" => "religion",
+        "politics & society" => "politics",
+        "art & music" => "art",
+        _ => genre.ToLowerInvariant()
+    };
 }
