@@ -1,3 +1,4 @@
+﻿using System.Text.Json.Serialization;
 using System;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
@@ -76,4 +77,25 @@ public class Book : BaseModel
 
     /// <summary>Publication year, falling back to "Year unknown".</summary>
     public string YearLabel => string.IsNullOrWhiteSpace(PublicationYear) ? "Year unknown" : PublicationYear;
+
+    [JsonIgnore]
+    public BookFacetProfile FacetProfile => BookGenres.Classify(this);
+
+    [JsonIgnore]
+    public string FormTag => FacetProfile.Form;
+
+    [JsonIgnore]
+    public string FactualityTag => FacetProfile.Factuality;
+
+    [JsonIgnore]
+    public string DomainTag => FacetProfile.Domain;
+
+    [JsonIgnore]
+    public string AudienceTag => FacetProfile.Audience;
+
+    [JsonIgnore]
+    public string EraTag => FacetProfile.Era;
+
+    [JsonIgnore]
+    public string RightsTag => FacetProfile.Rights;
 }

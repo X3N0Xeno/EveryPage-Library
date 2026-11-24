@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -32,6 +32,9 @@ public class GutendexBookSource
         var url = $"{BaseUrl}/?search={Uri.EscapeDataString(query)}&page={Math.Max(1, page)}";
         return FetchAsync(url, genre, limit, cancellationToken);
     }
+
+    public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 32, int page = 1, CancellationToken cancellationToken = default)
+        => BrowseTopicAsync(genre, limit, page, cancellationToken);
 
     public Task<List<Book>> BrowseTopicAsync(string genre, int limit = 32, int page = 1, CancellationToken cancellationToken = default)
     {

@@ -2,12 +2,26 @@
 
 <div class="comic-panel group relative rounded-sm p-5 flex flex-col justify-between">
     <div>
-        <div class="flex items-center justify-between gap-2 mb-3.5">
-            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wide uppercase rounded-sm border-2 border-[#1C1917] bg-[#F4C430] text-[#1C1917]">
-                @Book.GenreLabel
+        <!-- Top Stamp Row: Axis 3 Primary Domain + Source Stamp -->
+        <div class="flex items-center justify-between gap-2 mb-2.5">
+            <span class="inline-flex items-center px-2.5 py-0.5 text-[11px] font-mono font-bold tracking-wide uppercase rounded-sm border-2 border-[#1C1917] bg-[#F4C430] text-[#1C1917] truncate">
+                @Book.DomainTag
             </span>
-            <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-bold tracking-wide uppercase rounded-sm border-2 border-[#1C1917] @GetSourceBadgeClass()">
+            <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-bold tracking-wide uppercase rounded-sm border-2 border-[#1C1917] shrink-0 @GetSourceBadgeClass()">
                 @Book.SourceBadge
+            </span>
+        </div>
+
+        <!-- Faceted Taxonomy Micro-Badges (Axes 1, 5, 6) -->
+        <div class="flex flex-wrap items-center gap-1 mb-3">
+            <span class="px-1.5 py-0.5 text-[10px] font-mono bg-[#FAF6EC] border border-[#1C1917]/40 text-[#1C1917] rounded-sm" title="Axis 1: Form & Structure">
+                @Book.FormTag
+            </span>
+            <span class="px-1.5 py-0.5 text-[10px] font-mono bg-[#FAF6EC] border border-[#1C1917]/40 text-[#57534E] rounded-sm" title="Axis 5: Era of Origin">
+                @Book.EraTag
+            </span>
+            <span class="px-1.5 py-0.5 text-[10px] font-mono bg-[#F2EAD8] border border-[#1C1917]/40 text-[#1C1917] rounded-sm" title="Axis 6: Rights & Access Status">
+                @Book.RightsTag
             </span>
         </div>
 
@@ -23,9 +37,9 @@
             else
             {
                 <div class="w-16 h-24 rounded-sm border-2 border-[#1C1917] bg-[#F2EAD8] p-1.5 flex flex-col justify-between shrink-0 select-none shadow-[2px_2px_0px_#1C1917]">
-                    <span class="text-[8px] font-mono font-bold uppercase text-[#D93829] truncate">@Book.GenreLabel</span>
+                    <span class="text-[8px] font-mono font-bold uppercase text-[#D93829] truncate">@Book.FormTag</span>
                     <span class="font-comic text-[11px] font-bold leading-tight text-[#1C1917] line-clamp-3">@Book.Title</span>
-                    <span class="text-[8px] font-mono text-[#57534E] truncate">@(string.IsNullOrWhiteSpace(Book.PublicationYear) ? "OPEN" : Book.PublicationYear)</span>
+                    <span class="text-[8px] font-mono text-[#57534E] truncate">@Book.EraTag</span>
                 </div>
             }
 
@@ -36,19 +50,14 @@
                 <p class="text-sm font-bold text-[#1C1917]/85 truncate">
                     @Book.Author
                 </p>
-                <p class="text-xs font-mono text-[#57534E] mt-1">
-                    @if (!string.IsNullOrWhiteSpace(Book.PublicationYear))
-                    {
-                        <span>@Book.PublicationYear</span>
-                        <span class="mx-1">&bull;</span>
-                    }
-                    <span>@(Book.IsIndexed ? $"Card #{Book.Id:D4}" : Book.SourceBadge)</span>
+                <p class="text-xs font-mono text-[#57534E] mt-1 truncate">
+                    @Book.FactualityTag &bull; @Book.AudienceTag
                 </p>
             </div>
         </div>
 
         <p class="text-sm text-[#57534E] line-clamp-3 leading-snug mb-4 font-hand">
-            @(string.IsNullOrWhiteSpace(Book.Synopsis) ? "Open-access edition ready to read online or download straight to your desk." : Book.Synopsis)
+            @(string.IsNullOrWhiteSpace(Book.Synopsis) ? "Open-access edition ready to read online or download." : Book.Synopsis)
         </p>
     </div>
 
@@ -97,7 +106,7 @@
             <button type="button"
                     @onclick="() => OnDownload.InvokeAsync(Book)"
                     disabled="@(IsDownloading || !HasAnyDownload)"
-                    title="@(HasAnyDownload ? "Download or open source download page" : "No downloadable file available for this catalog record")"
+                    title="@(HasAnyDownload ? "Download or open 1-click download page" : "No downloadable file available for this catalog record")"
                     class='ink-btn inline-flex items-center justify-center px-3 py-2 rounded-sm @(HasAnyDownload ? "bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917]" : "bg-[#F2EAD8] text-[#57534E]/50 opacity-60 cursor-not-allowed")'>
                 @if (IsDownloading)
                 {
@@ -159,7 +168,6 @@
 
     private bool HasTextDownload =>
         !string.IsNullOrWhiteSpace(Book.ContentText) ||
-        Book.SourceBadge == "Wikisource" ||
         (Book.FileUrl?.Contains("txt", StringComparison.OrdinalIgnoreCase) == true);
 
     private bool HasAnyDownload =>
@@ -168,18 +176,19 @@
     private string GetMetricLabel() => Book.SourceBadge switch
     {
         "Open Library" => "editions",
-        "Wikisource" => "words",
+        "Wikibooks" => "words",
         _ => "reads"
     };
 
     private string GetSourceBadgeClass() => Book.SourceBadge switch
     {
         "Community PDF" => "bg-[#D93829] text-[#FFFDF7]",
+        "Standard Ebooks" => "bg-[#1C1917] text-[#F4C430]",
         "Internet Archive" => "bg-[#6BA4B8] text-[#1C1917]",
         "Project Gutenberg" => "bg-[#FFFDF7] text-[#1C1917]",
-        "Wikisource" => "bg-[#FEF08A] text-[#1C1917]",
+        "Wikibooks" => "bg-[#FEF08A] text-[#1C1917]",
+        "Sacred Texts" => "bg-[#F3E8FF] text-[#1C1917]",
         "DOAB Academic" => "bg-[#DCFCE7] text-[#1C1917]",
         _ => "bg-[#F2EAD8] text-[#1C1917]"
     };
 }
-

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,216 +10,186 @@ namespace MasyafArchive.Services;
 
 public class FederatedBookService
 {
-    private const int PageSizePerSource = 28;
-    private static readonly TimeSpan SourceTimeout = TimeSpan.FromMilliseconds(5000);
-
-    private readonly InternetArchiveBookSource _internetArchive;
-    private readonly OpenLibraryBookSource _openLibrary;
     private readonly GutendexBookSource _gutendex;
-    private readonly WikisourceBookSource _wikisource;
+    private readonly OpenLibraryBookSource _openLibrary;
+    private readonly InternetArchiveBookSource _internetArchive;
+    private readonly StandardEbooksBookSource _standardEbooks;
+    private readonly WikibooksBookSource _wikibooks;
+    private readonly SacredTextsBookSource _sacredTexts;
     private readonly DoabBookSource _doab;
 
-    private readonly Dictionary<string, List<Book>> _pageCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Task<List<Book>>> _inFlight = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, List<Book>> _pageCache = new(StringComparer.OrdinalIgnoreCase);
 
     public FederatedBookService(
-        InternetArchiveBookSource internetArchive,
-        OpenLibraryBookSource openLibrary,
         GutendexBookSource gutendex,
-        WikisourceBookSource wikisource,
+        OpenLibraryBookSource openLibrary,
+        InternetArchiveBookSource internetArchive,
+        StandardEbooksBookSource standardEbooks,
+        WikibooksBookSource wikibooks,
+        SacredTextsBookSource sacredTexts,
         DoabBookSource doab)
     {
-        _internetArchive = internetArchive;
-        _openLibrary = openLibrary;
         _gutendex = gutendex;
-        _wikisource = wikisource;
+        _openLibrary = openLibrary;
+        _internetArchive = internetArchive;
+        _standardEbooks = standardEbooks;
+        _wikibooks = wikibooks;
+        _sacredTexts = sacredTexts;
         _doab = doab;
     }
 
-    public bool IsCached(string query, string? genre, int page)
+    private static string BuildCacheKey(string? query, string? genre, int page) =>
+        $"{(query ?? "").Trim().ToLowerInvariant()}|{(genre ?? "All").Trim().ToLowerInvariant()}|{page}";
+
+    public bool IsCached(string? query, string? genre, int page) =>
+        _pageCache.ContainsKey(BuildCacheKey(query, genre, page));
+
+    public async Task PrefetchPageAsync(string? query, string? genre, int page, CancellationToken cancellationToken = default)
     {
         var key = BuildCacheKey(query, genre, page);
-        return _pageCache.TryGetValue(key, out var list) && list.Count > 0;
+        if (_pageCache.ContainsKey(key))
+            return;
+
+        try
+        {
+            await SearchPagedAsync(query, genre, page, cancellationToken: cancellationToken);
+        }
+        catch
+        {
+            // Background prefetch ignores transient cancellations
+        }
     }
 
-    public Task PrefetchPageAsync(string query, string? genre, int page, CancellationToken cancellationToken = default)
-    {
-        if (IsCached(query, genre, page))
-            return Task.CompletedTask;
-
-        return SearchPagedAsync(query, genre, page, onPartialBatchReady: null, cancellationToken);
-    }
-
-    public Task<List<Book>> SearchPagedAsync(
-        string query,
+    public async Task<List<Book>> SearchPagedAsync(
+        string? query,
         string? genre,
         int page = 1,
         Action<List<Book>>? onPartialBatchReady = null,
         CancellationToken cancellationToken = default)
     {
-        var trimmed = (query ?? string.Empty).Trim();
-        var normalizedGenre = string.IsNullOrWhiteSpace(genre) ? "All" : genre.Trim();
-        var cacheKey = BuildCacheKey(trimmed, normalizedGenre, page);
+        var key = BuildCacheKey(query, genre, page);
+        if (_pageCache.TryGetValue(key, out var cached))
+            return cached;
 
-        if (_pageCache.TryGetValue(cacheKey, out var cached) && cached.Count > 0)
+        bool hasQuery = !string.IsNullOrWhiteSpace(query);
+        bool hasGenre = !string.IsNullOrWhiteSpace(genre) && !genre.Equals("All", StringComparison.OrdinalIgnoreCase);
+
+        var tasks = new List<Task<List<Book>>>();
+
+        if (hasQuery)
         {
-            onPartialBatchReady?.Invoke(cached);
-            return Task.FromResult(cached);
+            tasks.Add(_standardEbooks.SearchAsync(query!, genre, 12, page, cancellationToken));
+            tasks.Add(_gutendex.SearchAsync(query!, genre, 20, page, cancellationToken));
+            tasks.Add(_openLibrary.SearchAsync(query!, genre, 20, page, cancellationToken));
+            tasks.Add(_internetArchive.SearchAsync(query!, genre, 20, page, cancellationToken));
+            tasks.Add(_wikibooks.SearchAsync(query!, genre, 12, page, cancellationToken));
+            tasks.Add(_sacredTexts.SearchAsync(query!, genre, 12, page, cancellationToken));
+            tasks.Add(_doab.SearchAsync(query!, genre, 12, page, cancellationToken));
+        }
+        else if (hasGenre)
+        {
+            tasks.Add(_standardEbooks.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+            tasks.Add(_gutendex.BrowseSubjectAsync(genre!, 20, page, cancellationToken));
+            tasks.Add(_openLibrary.BrowseSubjectAsync(genre!, 20, page, cancellationToken));
+            tasks.Add(_internetArchive.BrowseSubjectAsync(genre!, 20, page, cancellationToken));
+            tasks.Add(_wikibooks.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+            tasks.Add(_sacredTexts.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+            tasks.Add(_doab.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+        }
+        else
+        {
+            tasks.Add(_standardEbooks.GetPopularAsync(12, page, cancellationToken));
+            tasks.Add(_gutendex.GetPopularAsync(20, page, cancellationToken));
+            tasks.Add(_openLibrary.GetPopularAsync(20, page, cancellationToken));
+            tasks.Add(_internetArchive.GetPopularAsync(20, page, cancellationToken));
+            tasks.Add(_wikibooks.GetPopularAsync(12, page, cancellationToken));
+            tasks.Add(_sacredTexts.GetPopularAsync(12, page, cancellationToken));
+            tasks.Add(_doab.GetPopularAsync(12, page, cancellationToken));
         }
 
-        if (_inFlight.TryGetValue(cacheKey, out var existingTask))
+        var accumulated = new List<Book>();
+        var pending = new List<Task<List<Book>>>(tasks);
+
+        while (pending.Count > 0)
         {
-            return AttachToInFlightAsync(existingTask, onPartialBatchReady);
-        }
+            var finished = await Task.WhenAny(pending);
+            pending.Remove(finished);
 
-        var task = ExecuteFetchAsync(cacheKey, trimmed, normalizedGenre, page, onPartialBatchReady, cancellationToken);
-        _inFlight[cacheKey] = task;
-        return task;
-    }
+            if (cancellationToken.IsCancellationRequested)
+                break;
 
-    private static async Task<List<Book>> AttachToInFlightAsync(
-        Task<List<Book>> inFlightTask,
-        Action<List<Book>>? onPartialBatchReady)
-    {
-        var result = await inFlightTask;
-        if (result.Count > 0)
-        {
-            onPartialBatchReady?.Invoke(result);
-        }
-        return result;
-    }
-
-    private async Task<List<Book>> ExecuteFetchAsync(
-        string cacheKey,
-        string trimmed,
-        string normalizedGenre,
-        int page,
-        Action<List<Book>>? onPartialBatchReady,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var hasGenre = !normalizedGenre.Equals("All", StringComparison.OrdinalIgnoreCase);
-            var pending = new List<Task<List<Book>>>();
-
-            if (trimmed.Length > 0)
+            try
             {
-                var g = hasGenre ? normalizedGenre : null;
-                pending.Add(WithTimeout(_internetArchive.SearchAsync(trimmed, g, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_openLibrary.SearchAsync(trimmed, g, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_gutendex.SearchAsync(trimmed, g, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_wikisource.SearchAsync(trimmed, g, 18, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_doab.SearchAsync(trimmed, g, 16, page, cancellationToken), cancellationToken));
-            }
-            else if (hasGenre)
-            {
-                pending.Add(WithTimeout(_internetArchive.BrowseSubjectAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_openLibrary.BrowseSubjectAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_gutendex.BrowseTopicAsync(normalizedGenre, PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_wikisource.BrowseSubjectAsync(normalizedGenre, 18, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_doab.BrowseSubjectAsync(normalizedGenre, 16, page, cancellationToken), cancellationToken));
-            }
-            else
-            {
-                pending.Add(WithTimeout(_internetArchive.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_openLibrary.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_gutendex.GetPopularAsync(PageSizePerSource, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_wikisource.GetPopularAsync(18, page, cancellationToken), cancellationToken));
-                pending.Add(WithTimeout(_doab.GetPopularAsync(16, page, cancellationToken), cancellationToken));
-            }
-
-            var batches = new List<List<Book>>();
-            while (pending.Count > 0)
-            {
-                var finished = await Task.WhenAny(pending);
-                pending.Remove(finished);
-
                 var batch = await finished;
                 if (batch.Count > 0)
                 {
-                    batches.Add(batch);
-                    onPartialBatchReady?.Invoke(InterleaveAndRank(batches, trimmed));
+                    accumulated.AddRange(batch);
+                    if (pending.Count > 0 && onPartialBatchReady != null)
+                    {
+                        onPartialBatchReady(RankAndDeduplicate(accumulated, query));
+                    }
                 }
             }
-
-            var finalMerged = InterleaveAndRank(batches, trimmed);
-            if (finalMerged.Count > 0)
+            catch
             {
-                _pageCache[cacheKey] = finalMerged;
+                // Individual source failure should not halt other sources
             }
-
-            return finalMerged;
-        }
-        finally
-        {
-            _inFlight.Remove(cacheKey);
-        }
-    }
-
-    private static async Task<List<Book>> WithTimeout(Task<List<Book>> sourceTask, CancellationToken externalToken)
-    {
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
-        var delayTask = Task.Delay(SourceTimeout, timeoutCts.Token);
-        var winner = await Task.WhenAny(sourceTask, delayTask);
-        if (winner == sourceTask)
-        {
-            timeoutCts.Cancel();
-            return await sourceTask;
         }
 
-        return new List<Book>();
-    }
-
-    private static string BuildCacheKey(string query, string? genre, int page)
-    {
-        var q = (query ?? string.Empty).Trim();
-        var g = string.IsNullOrWhiteSpace(genre) ? "All" : genre.Trim();
-        return $"{q}|{g}|p{page}";
-    }
-
-    private static List<Book> InterleaveAndRank(List<List<Book>> batches, string query)
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var interleaved = new List<Book>();
-        var maxLen = batches.Count == 0 ? 0 : batches.Max(b => b.Count);
-
-        for (int i = 0; i < maxLen; i++)
+        var finalMerged = RankAndDeduplicate(accumulated, query);
+        if (!cancellationToken.IsCancellationRequested && finalMerged.Count > 0)
         {
-            foreach (var batch in batches)
-            {
-                if (i >= batch.Count) continue;
-                var book = batch[i];
-                var key = BuildKey(book);
-                if (seen.Add(key))
-                {
-                    interleaved.Add(book);
-                }
-            }
+            _pageCache[key] = finalMerged;
+        }
+
+        return finalMerged;
+    }
+
+    private static List<Book> RankAndDeduplicate(List<Book> raw, string? query)
+    {
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenTitleAuthor = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var unique = new List<Book>(raw.Count);
+
+        foreach (var b in raw)
+        {
+            if (!string.IsNullOrWhiteSpace(b.ExternalId) && !seenIds.Add(b.ExternalId))
+                continue;
+
+            var sig = $"{NormalizeKey(b.Title)}|{NormalizeKey(b.Author)}";
+            if (!seenTitleAuthor.Add(sig))
+                continue;
+
+            unique.Add(b);
         }
 
         if (string.IsNullOrWhiteSpace(query))
-            return interleaved;
+            return unique;
 
-        // Bubble strong title matches (like "No Longer Human") to the very top across all sources
-        return interleaved
-            .OrderByDescending(b => ScoreTitleMatch(b.Title, query))
+        var q = query.Trim().ToLowerInvariant();
+        return unique
+            .OrderByDescending(b => ComputeRelevanceScore(b, q))
+            .ThenByDescending(b => b.DownloadCount)
             .ToList();
     }
 
-    private static int ScoreTitleMatch(string title, string query)
+    private static int ComputeRelevanceScore(Book book, string q)
     {
-        if (string.IsNullOrWhiteSpace(title)) return 0;
-        if (title.Equals(query, StringComparison.OrdinalIgnoreCase)) return 3;
-        if (title.StartsWith(query, StringComparison.OrdinalIgnoreCase)) return 2;
-        if (title.Contains(query, StringComparison.OrdinalIgnoreCase)) return 1;
-        return 0;
+        var title = book.Title.ToLowerInvariant();
+        var author = book.Author.ToLowerInvariant();
+        int score = 0;
+
+        if (title == q) score += 1000;
+        else if (title.StartsWith(q)) score += 700;
+        else if (title.Contains(q)) score += 450;
+
+        if (author.Contains(q)) score += 300;
+        if (!string.IsNullOrWhiteSpace(book.PdfUrl) || !string.IsNullOrWhiteSpace(book.EpubUrl)) score += 80;
+        if (book.SourceName == "Standard Ebooks") score += 40;
+
+        return score;
     }
 
-    private static string BuildKey(Book book)
-    {
-        if (!string.IsNullOrWhiteSpace(book.ExternalId))
-            return book.ExternalId!;
-
-        return $"{book.Title}|{book.Author}".ToLowerInvariant();
-    }
+    private static string NormalizeKey(string text) =>
+        new string(text.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
 }

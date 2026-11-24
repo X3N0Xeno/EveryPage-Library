@@ -1,9 +1,7 @@
-﻿@using MasyafArchive.Models
+@using MasyafArchive.Models
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
-@inject WikisourceBookSource Wikisource
-
 @if (IsOpen && Book != null)
 {
     <div class="fixed inset-0 z-50 overflow-y-auto bg-black/65 flex items-center justify-center p-2 sm:p-4 animate-modal-in"
@@ -266,19 +264,6 @@
         if (IsOpen && Book != null)
         {
             await LoadCommentsAsync();
-            if (string.IsNullOrWhiteSpace(Book.ContentText) &&
-                Book.ExternalId?.StartsWith("ws-", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                isLoadingFullText = true;
-                try
-                {
-                    Book.ContentText = await Wikisource.FetchFullTextAsync(Book.Title);
-                }
-                finally
-                {
-                    isLoadingFullText = false;
-                }
-            }
         }
     }
 
@@ -333,3 +318,4 @@
     private async Task Close() => await OnClose.InvokeAsync();
     private async Task HandleKeyDown(KeyboardEventArgs e) { if (e.Key == "Escape") await Close(); }
 }
+

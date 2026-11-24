@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components.Web;
@@ -48,9 +48,12 @@ builder.Services.AddScoped<FederatedBookService>();
 static HttpClient CreateCatalogClient() => new() { Timeout = TimeSpan.FromSeconds(30) };
 
 Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.InternetArchiveBookSource>(builder.Services);
-Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.WikisourceBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.SacredTextsBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.StandardEbooksBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.WikibooksBookSource>(builder.Services);
 Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.DoabBookSource>(builder.Services);
 
 await builder.Build().RunAsync();
+
 
 

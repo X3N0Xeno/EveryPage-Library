@@ -3,7 +3,6 @@
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
 @inject FederatedBookService FederatedBooks
-@inject WikisourceBookSource Wikisource
 @inject InternetArchiveBookSource InternetArchive
 @inject AuthStateService AuthState
 @inject IJSRuntime JSRuntime
@@ -28,12 +27,12 @@
             <div class="inline-flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 px-5 py-3 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] shadow-[3px_3px_0px_#1C1917] font-mono text-xs">
                 <div>
                     <span class="text-[#57534E] uppercase text-[10px] block">Books on Desk</span>
-                    <span class="text-base font-bold text-[#D93829]">@books.Count</span>
+                    <span class="text-base font-bold text-[#D93829]">@FilteredBooks.Count</span>
                 </div>
                 <div class="w-0.5 h-7 bg-[#1C1917]/20"></div>
                 <div>
-                    <span class="text-[#57534E] uppercase text-[10px] block">Community PDFs</span>
-                    <span class="text-base font-bold text-[#1C1917]">@stats.CommunityPdfs</span>
+                    <span class="text-[#57534E] uppercase text-[10px] block">Open Libraries</span>
+                    <span class="text-base font-bold text-[#1C1917]">8 Sources</span>
                 </div>
                 <div class="w-0.5 h-7 bg-[#1C1917]/20"></div>
                 <div>
@@ -42,8 +41,8 @@
                 </div>
                 <div class="w-0.5 h-7 bg-[#1C1917]/20"></div>
                 <div>
-                    <span class="text-[#57534E] uppercase text-[10px] block">Gutenberg Shelves</span>
-                    <span class="text-base font-bold text-[#1C1917]">@(BookGenres.Filters.Count - 1) Topics</span>
+                    <span class="text-[#57534E] uppercase text-[10px] block">Master Taxonomy</span>
+                    <span class="text-base font-bold text-[#1C1917]">6 Axes</span>
                 </div>
             </div>
         </div>
@@ -103,7 +102,7 @@
                 </svg>
                 <input type="text"
                        @bind="searchQuery"
-                       placeholder="Search Internet Archive, Open Library, Project Gutenberg, Wikisource..."
+                       placeholder="Search Standard Ebooks, Project Gutenberg, Open Library, Internet Archive, Wikibooks, Sacred Texts..."
                        class="w-full text-base pl-10 pr-9 py-2.5 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917] placeholder-[#57534E] shadow-[2px_2px_0px_#1C1917] focus:bg-[#FFFDF7] focus:outline-none" />
                 @if (!string.IsNullOrWhiteSpace(searchQuery))
                 {
@@ -127,46 +126,109 @@
         </button>
     </div>
 
-    <!-- Bookshelf Tags -->
-    <div class="mb-8 pb-5 border-b-2 border-dashed border-[#1C1917]/25">
-        <div class="flex items-center justify-between mb-2.5">
-            <span class="font-mono text-xs font-bold uppercase tracking-wider text-[#57534E]">
-                Bookshelves &amp; Subjects (@(BookGenres.Filters.Count - 1) Categories):
-            </span>
-            <button type="button"
-                    @onclick="() => showAllTags = !showAllTags"
-                    class="font-mono text-xs font-bold text-[#D93829] hover:underline">
-                @(showAllTags ? "Show Fewer Tags \u25B2" : $"Show All {BookGenres.Filters.Count} Tags \u25BC")
-            </button>
+    <!-- Mutually Exclusive 6-Axis Master Tagging System -->
+    <div class="mb-8 pb-5 border-b-2 border-dashed border-[#1C1917]/25 space-y-4">
+        <!-- Axis 3: Primary Domain / Subject -->
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-mono text-xs font-bold uppercase tracking-wider text-[#57534E]">
+                    Axis 3 &mdash; Primary Domain / Subject (@BookGenres.DomainTags.Count Non-Overlapping Domains):
+                </span>
+                <button type="button"
+                        @onclick="() => showAllTags = !showAllTags"
+                        class="font-mono text-xs font-bold text-[#D93829] hover:underline">
+                    @(showAllTags ? "Compact Domains \u25B2" : "Show All 15 Domains \u25BC")
+                </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                @foreach (var domain in VisibleDomains)
+                {
+                    <button type="button"
+                            @onclick="() => SelectCategory(domain)"
+                            class='ink-btn px-3 py-1 rounded-sm text-xs font-mono font-bold transition-all @(selectedCategory == domain ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FFFDF7] hover:bg-[#F4C430]/40 text-[#1C1917]")'>
+                        @domain
+                    </button>
+                }
+            </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-            @foreach (var genre in VisibleGenres)
-            {
-                <button type="button"
-                        @onclick="() => SelectCategory(genre)"
-                        class='ink-btn px-3 py-1 rounded-sm text-xs font-mono font-bold uppercase transition-all @(selectedCategory == genre ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FFFDF7] hover:bg-[#F4C430]/40 text-[#1C1917]")'>
-                    @genre
-                </button>
-            }
+        <!-- Axes 1, 2, 4, 5, 6: Independent Faceted Selectors -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2">
+            <div>
+                <label class="block font-mono text-[10px] font-bold uppercase text-[#57534E] mb-1">Axis 1: Form &amp; Structure</label>
+                <select @bind="selectedForm" class="w-full text-xs font-mono p-2 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917]">
+                    <option value="All">All Forms</option>
+                    @foreach (var tag in BookGenres.FormTags)
+                    {
+                        <option value="@tag">@tag</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-mono text-[10px] font-bold uppercase text-[#57534E] mb-1">Axis 2: Factuality</label>
+                <select @bind="selectedFactuality" class="w-full text-xs font-mono p-2 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917]">
+                    <option value="All">All Factuality</option>
+                    @foreach (var tag in BookGenres.FactualityTags)
+                    {
+                        <option value="@tag">@tag</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-mono text-[10px] font-bold uppercase text-[#57534E] mb-1">Axis 4: Target Audience</label>
+                <select @bind="selectedAudience" class="w-full text-xs font-mono p-2 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917]">
+                    <option value="All">All Audiences</option>
+                    @foreach (var tag in BookGenres.AudienceTags)
+                    {
+                        <option value="@tag">@tag</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-mono text-[10px] font-bold uppercase text-[#57534E] mb-1">Axis 5: Era of Origin</label>
+                <select @bind="selectedEra" class="w-full text-xs font-mono p-2 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917]">
+                    <option value="All">All Eras</option>
+                    @foreach (var tag in BookGenres.EraTags)
+                    {
+                        <option value="@tag">@tag</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-mono text-[10px] font-bold uppercase text-[#57534E] mb-1">Axis 6: Rights &amp; Access</label>
+                <select @bind="selectedRights" class="w-full text-xs font-mono p-2 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] text-[#1C1917]">
+                    <option value="All">All Access Tiers</option>
+                    @foreach (var tag in BookGenres.RightsTags)
+                    {
+                        <option value="@tag">@tag</option>
+                    }
+                </select>
+            </div>
         </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedCategory != "All")
+    @if (HasActiveFilters)
     {
         <div class="flex items-center justify-between mb-5 px-4 py-2.5 bg-[#F2EAD8] border-2 border-[#1C1917] rounded-sm text-xs font-mono">
             <span>
-                Shelf: <strong class="text-[#D93829]">@selectedCategory</strong>
-                @if (!string.IsNullOrWhiteSpace(searchQuery))
-                {
-                    <span> &bull; Query: "<strong>@searchQuery</strong>"</span>
-                }
-                <span> (@books.Count editions loaded)</span>
+                Active Facets: <strong class="text-[#D93829]">@selectedCategory</strong>
+                @if (selectedForm != "All") { <span> &bull; @selectedForm</span> }
+                @if (selectedFactuality != "All") { <span> &bull; @selectedFactuality</span> }
+                @if (selectedAudience != "All") { <span> &bull; @selectedAudience</span> }
+                @if (selectedEra != "All") { <span> &bull; @selectedEra</span> }
+                @if (selectedRights != "All") { <span> &bull; @selectedRights</span> }
+                @if (!string.IsNullOrWhiteSpace(searchQuery)) { <span> &bull; Query: "<strong>@searchQuery</strong>"</span> }
+                <span> (@FilteredBooks.Count matching editions)</span>
             </span>
             <button type="button"
                     @onclick="ResetFilters"
                     class="font-bold text-[#D93829] hover:underline uppercase">
-                Reset Shelf
+                Reset All
             </button>
         </div>
     }
@@ -180,24 +242,24 @@
             }
         </div>
     }
-    else if (books.Count == 0)
+    else if (FilteredBooks.Count == 0)
     {
         <div class="max-w-md mx-auto my-12 p-8 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm text-center">
-            <h3 class="font-comic text-2xl font-bold text-[#1C1917] mb-2">No Index Cards Found</h3>
+            <h3 class="font-comic text-2xl font-bold text-[#1C1917] mb-2">No Index Cards Match These Axes</h3>
             <p class="text-base text-[#57534E] mb-5">
-                Nothing turned up on that shelf. Try another subject tag or upload a rare PDF copy!
+                No editions match that exact combination of facets. Loosen one of the 6 taxonomy filters or load more cards!
             </p>
             <button type="button"
                     @onclick="ResetFilters"
                     class="ink-btn px-5 py-2 text-sm font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
-                Back to Top Books
+                Reset Facet Filters
             </button>
         </div>
     }
     else
     {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach (var book in books)
+            @foreach (var book in FilteredBooks)
             {
                 <BookCard Book="book"
                           IsAuditor="@AuthState.IsAuditor"
@@ -221,7 +283,7 @@
             @if (!hasMorePages)
             {
                 <p class="font-mono text-xs text-[#57534E]">
-                    &mdash; End of shelf (@books.Count books) &mdash;
+                    &mdash; End of shelf (@FilteredBooks.Count books) &mdash;
                 </p>
             }
         </div>
@@ -284,7 +346,14 @@
 @code {
     private List<Book> books = new();
     private (int TotalBooks, int CommunityPdfs, int TotalDownloads, int TotalLogs) stats = (0, 0, 0, 0);
+
     private string selectedCategory = "All";
+    private string selectedForm = "All";
+    private string selectedFactuality = "All";
+    private string selectedAudience = "All";
+    private string selectedEra = "All";
+    private string selectedRights = "All";
+
     private string searchQuery = "";
     private bool showAllTags = false;
 
@@ -315,8 +384,25 @@
     private Book? bookToSeal;
     private string sealReason = "";
 
-    private IEnumerable<string> VisibleGenres =>
-        showAllTags ? BookGenres.Filters : BookGenres.Filters.Take(11);
+    private IEnumerable<string> VisibleDomains =>
+        showAllTags ? BookGenres.Filters : BookGenres.Filters.Take(9);
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(searchQuery) ||
+        selectedCategory != "All" ||
+        selectedForm != "All" ||
+        selectedFactuality != "All" ||
+        selectedAudience != "All" ||
+        selectedEra != "All" ||
+        selectedRights != "All";
+
+    private List<Book> FilteredBooks => books.Where(b =>
+        (selectedForm == "All" || b.FormTag.Equals(selectedForm, StringComparison.OrdinalIgnoreCase)) &&
+        (selectedFactuality == "All" || b.FactualityTag.Equals(selectedFactuality, StringComparison.OrdinalIgnoreCase)) &&
+        (selectedAudience == "All" || b.AudienceTag.Equals(selectedAudience, StringComparison.OrdinalIgnoreCase)) &&
+        (selectedEra == "All" || b.EraTag.Equals(selectedEra, StringComparison.OrdinalIgnoreCase)) &&
+        (selectedRights == "All" || b.RightsTag.Equals(selectedRights, StringComparison.OrdinalIgnoreCase))
+    ).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -503,7 +589,19 @@
     private async Task SelectCategory(string category) { selectedCategory = category; await LoadFirstPageAsync(); }
     private async Task ApplySearch() => await LoadFirstPageAsync();
     private async Task ClearSearch() { searchQuery = ""; await LoadFirstPageAsync(); }
-    private async Task ResetFilters() { selectedCategory = "All"; searchQuery = ""; await LoadFirstPageAsync(); }
+
+    private async Task ResetFilters()
+    {
+        selectedCategory = "All";
+        selectedForm = "All";
+        selectedFactuality = "All";
+        selectedAudience = "All";
+        selectedEra = "All";
+        selectedRights = "All";
+        searchQuery = "";
+        await LoadFirstPageAsync();
+    }
+
     private void OpenReader(Book book) { selectedBookForReader = book; isReaderOpen = true; }
 
     private async Task DownloadBook(Book book, string? preferredFormat)
@@ -513,7 +611,7 @@
 
         downloadingBookKey = key;
         downloadToastIsWarning = false;
-        downloadToastMessage = $"Checking download availability for \"{book.Title}\"...";
+        downloadToastMessage = $"Checking download options for \"{book.Title}\"...";
         StateHasChanged();
 
         try
@@ -522,26 +620,14 @@
             bool success = false;
             string toastText = "";
 
-            // 1. Wikisource editions: save assembled proofread text directly as .txt
-            if (book.ExternalId?.StartsWith("ws-", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                if (string.IsNullOrWhiteSpace(book.ContentText))
-                {
-                    book.ContentText = await Wikisource.FetchFullTextAsync(book.Title);
-                }
-
-                var manuscript = $"EVERYPAGE LIBRARY (WIKISOURCE)\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.ContentText}";
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
-                toastText = $"Saved \"{book.Title}.txt\" to your Downloads folder!";
-            }
-            // 2. Local plain-text books
-            else if (!string.IsNullOrWhiteSpace(book.ContentText) && string.IsNullOrWhiteSpace(book.PdfUrl) && string.IsNullOrWhiteSpace(book.EpubUrl))
+            // 1. Local plain-text books
+            if (!string.IsNullOrWhiteSpace(book.ContentText) && string.IsNullOrWhiteSpace(book.PdfUrl) && string.IsNullOrWhiteSpace(book.EpubUrl))
             {
                 var manuscript = $"EVERYPAGE LIBRARY\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.Synopsis}\n\n{book.ContentText}";
                 success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
                 toastText = $"Saved \"{book.Title}.txt\" to your Downloads folder!";
             }
-            // 3. Community PDFs hosted on Supabase Storage -> direct PDF download
+            // 2. Community PDFs hosted on Supabase Storage -> direct PDF download
             else if (book.IsIndexed && !string.IsNullOrWhiteSpace(book.PdfUrl))
             {
                 success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadDirectBlob", book.PdfUrl, $"{safeTitle}.pdf");
@@ -551,7 +637,20 @@
                 }
                 toastText = $"Downloaded \"{book.Title}.pdf\"!";
             }
-            // 4. Internet Archive & Open Library editions with an Archive identifier -> 1-click download screen
+            // 3. Wikibooks -> Wikimedia REST API generates a direct PDF textbook
+            else if (book.ExternalId?.StartsWith("wb-", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrWhiteSpace(book.PdfUrl))
+            {
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", book.PdfUrl);
+                toastText = $"Started Wikibooks PDF export for \"{book.Title}\"!";
+            }
+            // 4. Standard Ebooks -> open Standard Ebooks catalog page (1-click EPUB/AZW3/Kepub)
+            else if (book.ExternalId?.StartsWith("se-", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var targetUrl = book.FileUrl ?? book.EpubUrl;
+                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                toastText = $"Opened Standard Ebooks page for \"{book.Title}\" (1 click to save EPUB/AZW3/Kepub).";
+            }
+            // 5. Internet Archive, Open Library & Sacred Texts -> verify availability & open 1-click download page
             else if (!string.IsNullOrWhiteSpace(ExtractArchiveIdentifier(book)))
             {
                 var archiveId = ExtractArchiveIdentifier(book)!;
@@ -560,7 +659,7 @@
                 if (resolved.IsRestricted)
                 {
                     downloadToastIsWarning = true;
-                    downloadToastMessage = $"\"{book.Title}\" is borrow-only on Internet Archive (not downloadable). Click \"Read Book\" to view online.";
+                    downloadToastMessage = $"\"{book.Title}\" is Controlled-Lending (borrow-only, not downloadable). Click \"Read Book\" to view online.";
                     return;
                 }
 
@@ -575,9 +674,9 @@
                 };
 
                 success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
-                toastText = $"Opened Internet Archive download page for \"{book.Title}\" (1 click to save).";
+                toastText = $"Opened {book.SourceBadge} download page for \"{book.Title}\" (1 click to save).";
             }
-            // 5. Project Gutenberg -> open official ebook landing page (1 click to save EPUB/TXT)
+            // 6. Project Gutenberg -> open official ebook landing page
             else if (book.ExternalId?.StartsWith("pg-", StringComparison.OrdinalIgnoreCase) == true)
             {
                 var pgId = book.ExternalId["pg-".Length..];
@@ -585,17 +684,10 @@
                     ? $"https://www.gutenberg.org/ebooks/{Uri.EscapeDataString(pgId)}"
                     : book.FileUrl;
 
-                if (string.IsNullOrWhiteSpace(targetUrl))
-                {
-                    downloadToastIsWarning = true;
-                    downloadToastMessage = $"No download page found for \"{book.Title}\".";
-                    return;
-                }
-
                 success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
                 toastText = $"Opened Project Gutenberg page for \"{book.Title}\" (1 click to save).";
             }
-            // 6. DOAB Academic & any other source with a valid file/landing URL
+            // 7. DOAB Academic & remaining sources
             else
             {
                 var targetUrl = preferredFormat?.ToLowerInvariant() switch
@@ -651,6 +743,9 @@
 
         if (book.ExternalId.StartsWith("ia-", StringComparison.OrdinalIgnoreCase))
             return book.ExternalId["ia-".Length..];
+
+        if (book.ExternalId.StartsWith("st-", StringComparison.OrdinalIgnoreCase))
+            return book.ExternalId["st-".Length..];
 
         if (book.ExternalId.StartsWith("ol-", StringComparison.OrdinalIgnoreCase) &&
             !book.ExternalId.StartsWith("ol-works/", StringComparison.OrdinalIgnoreCase))
