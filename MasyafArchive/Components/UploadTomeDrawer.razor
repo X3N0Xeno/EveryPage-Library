@@ -1,39 +1,22 @@
-@using MasyafArchive.Models
+﻿@using MasyafArchive.Models
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
 
 @if (IsOpen)
 {
-    <div class="fixed inset-0 z-50 overflow-hidden bg-black/75 backdrop-blur-sm flex justify-end animate-modal-in"
-         tabindex="-1"
-         @onkeydown="HandleKeyDown">
-
-        <!-- Slide-over Drawer -->
-        <div class="w-full max-w-xl h-full bg-[#181614] border-l border-[#2E2A25] shadow-2xl flex flex-col animate-drawer-in">
-            
+    <div class="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-sm">
+        <div class="relative w-full max-w-xl bg-[#141210] border-l border-[#2E2924] h-full flex flex-col shadow-2xl">
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-5 border-b border-[#2E2A25] bg-[#0F0E0D]">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-sm bg-[#C8963E]/10 border border-[#C8963E]/40 flex items-center justify-center text-[#C8963E]">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="font-serif text-xl font-bold text-[#EDE6D6] tracking-wide">
-                            Upload Book
-                        </h2>
-                        <p class="text-xs font-mono text-[#9E9587]">
-                            Uploading as <span class="text-[#C8963E]">@AuthState.CurrentUser?.Username</span> (@(AuthState.IsAuditor ? "Auditor" : "Contributor"))
-                        </p>
-                    </div>
+            <div class="px-6 py-5 border-b border-[#2E2924] flex items-center justify-between bg-[#181614]">
+                <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.2em] text-[#C8963E]">Community Shelf</p>
+                    <h2 class="font-serif text-2xl font-semibold text-[#EDE6D6] mt-0.5">Upload PDF Book</h2>
                 </div>
-
                 <button type="button"
                         @onclick="Close"
-                        class="p-1 text-[#9E9587] hover:text-[#EDE6D6] rounded-sm transition-colors">
+                        disabled="@isSaving"
+                        class="p-2 text-[#9E9587] hover:text-[#EDE6D6] transition-colors rounded-sm">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -41,123 +24,125 @@
                 </button>
             </div>
 
-            <!-- Form Content (Scrollable) -->
+            <!-- Form Body -->
             <form @onsubmit="HandleSubmit" class="flex-1 overflow-y-auto p-6 space-y-5">
-                
+                <p class="text-xs text-[#9E9587] leading-relaxed">
+                    Contribute original works or hard-to-find editions to the EveryPage Library. Uploads are restricted to PDF documents to preserve original page layout and typography.
+                </p>
+
                 @if (!string.IsNullOrWhiteSpace(errorMessage))
                 {
-                    <div class="p-3 rounded-sm border border-[#9E332D] bg-[#9E332D]/10 text-xs text-[#EDE6D6] font-mono">
+                    <div class="p-3.5 bg-red-950/60 border border-red-800/70 rounded-sm text-xs text-red-200">
                         @errorMessage
                     </div>
                 }
 
-                <!-- Book Title -->
+                <!-- PDF File Picker (Required) -->
                 <div>
-                    <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-1.5">
-                        BOOK TITLE *
+                    <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                        PDF Document <span class="text-[#C8963E]">*</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center w-full px-4 py-5 border border-dashed border-[#3A332C] hover:border-[#C8963E] bg-[#181614] rounded-sm cursor-pointer transition-colors">
+                        <svg class="w-6 h-6 text-[#C8963E] mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <path d="M12 18v-6"></path>
+                            <path d="m9 15 3-3 3 3"></path>
+                        </svg>
+                        @if (!string.IsNullOrWhiteSpace(pdfFileName))
+                        {
+                            <span class="text-xs font-medium text-[#EDE6D6] text-center break-all">@pdfFileName</span>
+                            <span class="text-[11px] font-mono text-[#C8963E] mt-1">@FormatSize(pdfBytes?.Length ?? 0) — Ready</span>
+                        }
+                        else
+                        {
+                            <span class="text-xs text-[#EDE6D6]">Select a .pdf file from your device</span>
+                            <span class="text-[11px] font-mono text-[#9E9587] mt-1">PDF only, up to 25 MB</span>
+                        }
+                        <InputFile OnChange="HandlePdfSelected" accept=".pdf,application/pdf" class="hidden" />
+                    </label>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                        Book Title <span class="text-[#C8963E]">*</span>
                     </label>
                     <input type="text"
                            @bind="newBook.Title"
-                           placeholder="e.g. Clean Relational Design"
                            required
-                           disabled="@isSaving"
-                           class="w-full text-sm p-3 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors" />
+                           placeholder="e.g., Meditations"
+                           class="w-full px-3.5 py-2.5 bg-[#181614] border border-[#2E2924] focus:border-[#C8963E] focus:outline-none rounded-sm text-sm text-[#EDE6D6] placeholder-[#6E675F]" />
                 </div>
 
-                <!-- Author & Category Row -->
+                <!-- Author -->
+                <div>
+                    <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                        Author <span class="text-[#C8963E]">*</span>
+                    </label>
+                    <input type="text"
+                           @bind="newBook.Author"
+                           required
+                           placeholder="e.g., Marcus Aurelius"
+                           class="w-full px-3.5 py-2.5 bg-[#181614] border border-[#2E2924] focus:border-[#C8963E] focus:outline-none rounded-sm text-sm text-[#EDE6D6] placeholder-[#6E675F]" />
+                </div>
+
+                <!-- Genre & Publication Year -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-1.5">
-                            AUTHOR *
-                        </label>
-                        <input type="text"
-                               @bind="newBook.Author"
-                               placeholder="e.g. Altaïr Ibn-La'Ahad"
-                               required
-                               disabled="@isSaving"
-                               class="w-full text-sm p-3 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors" />
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-1.5">
-                            CATEGORY *
+                        <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                            Genre
                         </label>
                         <select @bind="newBook.Category"
-                                disabled="@isSaving"
-                                class="w-full text-sm p-3 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors cursor-pointer">
-                            <option value="Codex">General</option>
+                                class="w-full px-3.5 py-2.5 bg-[#181614] border border-[#2E2924] focus:border-[#C8963E] focus:outline-none rounded-sm text-sm text-[#EDE6D6]">
+                            <option value="Literature">Literature</option>
                             <option value="Philosophy">Philosophy</option>
-                            <option value="Systems">Systems</option>
                             <option value="History">History</option>
+                            <option value="Science">Science</option>
+                            <option value="Fiction">Fiction</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Biography">Biography</option>
                         </select>
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                            Year or Era
+                        </label>
+                        <input type="text"
+                               @bind="newBook.PublicationYear"
+                               placeholder="e.g., 180 CE or 2026"
+                               class="w-full px-3.5 py-2.5 bg-[#181614] border border-[#2E2924] focus:border-[#C8963E] focus:outline-none rounded-sm text-sm text-[#EDE6D6] placeholder-[#6E675F]" />
+                    </div>
                 </div>
 
-                <!-- Description (formerly Synopsis) -->
+                <!-- Description / Synopsis -->
                 <div>
-                    <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-1.5">
-                        DESCRIPTION *
+                    <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                        Description
                     </label>
                     <textarea @bind="newBook.Synopsis"
-                              rows="2"
-                              placeholder="A concise summary of the book..."
-                              required
-                              disabled="@isSaving"
-                              class="w-full text-sm p-3 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors"></textarea>
+                              rows="3"
+                              placeholder="Brief summary, edition notes, or historical context..."
+                              class="w-full px-3.5 py-2.5 bg-[#181614] border border-[#2E2924] focus:border-[#C8963E] focus:outline-none rounded-sm text-sm text-[#EDE6D6] placeholder-[#6E675F] resize-none"></textarea>
                 </div>
 
-                <!-- Book Content (Readable Text) -->
+                <!-- Optional Cover Image -->
                 <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587]">
-                            BOOK CONTENT (READABLE TEXT) *
-                        </label>
-                        <span class="text-[10px] font-mono text-[#9E9587]">Plain text or markdown</span>
-                    </div>
-                    <textarea @bind="newBook.ContentText"
-                              rows="8"
-                              placeholder="Paste or type the full readable text of the book here..."
-                              required
-                              disabled="@isSaving"
-                              class="w-full text-xs font-mono p-3 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors leading-relaxed"></textarea>
-                </div>
-
-                <!-- Optional File Upload or PDF URL -->
-                <div class="p-4 rounded-sm border border-[#2E2A25] bg-[#0F0E0D] space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-mono uppercase tracking-wider text-[#C8963E]">
-                            ATTACH FILE (OPTIONAL)
+                    <label class="block text-xs font-mono uppercase tracking-wider text-[#EDE6D6] mb-1.5">
+                        Cover Image <span class="text-[#9E9587] normal-case">(Optional)</span>
+                    </label>
+                    <label class="flex items-center justify-between w-full px-3.5 py-2.5 bg-[#181614] border border-[#2E2924] hover:border-[#C8963E] rounded-sm cursor-pointer transition-colors">
+                        <span class="text-xs text-[#9E9587] truncate">
+                            @(string.IsNullOrWhiteSpace(coverFileName) ? "Choose JPG, PNG, or WebP cover art..." : coverFileName)
                         </span>
-                        <span class="text-[10px] font-mono text-[#9E9587]">PDF, TXT, or MD</span>
-                    </div>
-
-                    <!-- File input -->
-                    <div>
-                        <label class="block text-xs text-[#9E9587] mb-1">Upload a PDF, TXT, or Markdown file:</label>
-                        <InputFile OnChange="HandleFileSelected"
-                                   disabled="@isSaving"
-                                   class="text-xs text-[#9E9587] file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-semibold file:bg-[#201E1A] file:text-[#C8963E] hover:file:bg-[#2E2A25] file:cursor-pointer" />
-                        @if (!string.IsNullOrWhiteSpace(uploadedFileName))
-                        {
-                            <p class="text-xs font-mono text-[#C8963E] mt-1">
-                                Selected: @uploadedFileName (@(uploadedFileBytes?.Length ?? 0) bytes)
-                            </p>
-                        }
-                    </div>
-
-                    <!-- Or External URL -->
-                    <div class="pt-2 border-t border-[#2E2A25]">
-                        <label class="block text-xs text-[#9E9587] mb-1">Or enter an external file URL:</label>
-                        <input type="url"
-                               @bind="newBook.FileUrl"
-                               placeholder="https://example.com/document.pdf"
-                               disabled="@isSaving"
-                               class="w-full text-xs p-2 rounded-sm bg-[#181614] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none" />
-                    </div>
+                        <span class="text-[11px] font-mono uppercase text-[#C8963E] ml-3 shrink-0">Browse</span>
+                        <InputFile OnChange="HandleCoverSelected" accept="image/png,image/jpeg,image/webp" class="hidden" />
+                    </label>
                 </div>
 
-                <!-- Action Buttons: Disabled when isSaving == true -->
-                <div class="pt-4 border-t border-[#2E2A25] flex items-center justify-end gap-3">
+                <!-- Footer Actions -->
+                <div class="pt-4 border-t border-[#2E2924] flex items-center justify-end gap-3">
                     <button type="button"
                             @onclick="Close"
                             disabled="@isSaving"
@@ -201,40 +186,81 @@
 
     private Book newBook = new()
     {
-        Category = "Codex"
+        Category = "Literature",
+        SourceName = "Community PDF"
     };
 
     private bool isSaving = false;
     private string errorMessage = "";
-    private byte[]? uploadedFileBytes;
-    private string? uploadedFileName;
+    private byte[]? pdfBytes;
+    private string? pdfFileName;
+    private byte[]? coverBytes;
+    private string? coverFileName;
 
     private void ResetForm()
     {
-        newBook = new Book { Category = "Codex" };
-        uploadedFileBytes = null;
-        uploadedFileName = null;
+        newBook = new Book
+        {
+            Category = "Literature",
+            SourceName = "Community PDF"
+        };
+        pdfBytes = null;
+        pdfFileName = null;
+        coverBytes = null;
+        coverFileName = null;
         errorMessage = "";
         isSaving = false;
     }
 
-    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    private async Task HandlePdfSelected(InputFileChangeEventArgs e)
     {
+        errorMessage = "";
         try
         {
             var file = e.File;
-            if (file != null)
+            if (file == null) return;
+
+            if (!file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
-                uploadedFileName = file.Name;
-                using var stream = file.OpenReadStream(maxAllowedSize: 15 * 1024 * 1024); // 15MB max
-                using var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
-                uploadedFileBytes = ms.ToArray();
+                pdfBytes = null;
+                pdfFileName = null;
+                errorMessage = "Only .pdf files are accepted for community book uploads.";
+                return;
             }
+
+            pdfFileName = file.Name;
+            using var stream = file.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            pdfBytes = ms.ToArray();
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error reading file: {ex.Message}";
+            pdfBytes = null;
+            pdfFileName = null;
+            errorMessage = $"Error reading PDF: {ex.Message}";
+        }
+    }
+
+    private async Task HandleCoverSelected(InputFileChangeEventArgs e)
+    {
+        errorMessage = "";
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            coverFileName = file.Name;
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            coverBytes = ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            coverBytes = null;
+            coverFileName = null;
+            errorMessage = $"Error reading cover image: {ex.Message}";
         }
     }
 
@@ -243,6 +269,18 @@
         if (!AuthState.IsAuthenticated)
         {
             errorMessage = "Please sign in to upload books.";
+            return;
+        }
+
+        if (pdfBytes == null || pdfBytes.Length == 0 || string.IsNullOrWhiteSpace(pdfFileName))
+        {
+            errorMessage = "Please select a PDF file to upload.";
+            return;
+        }
+
+        if (!pdfFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            errorMessage = "Only .pdf files are allowed.";
             return;
         }
 
@@ -258,28 +296,33 @@
         try
         {
             var actor = AuthState.CurrentUser!;
-            var inscribed = await ArchiveService.InscribeBookAsync(
+            newBook.UploadedBy = actor.Username;
+            newBook.SourceName = "Community PDF";
+
+            var created = await ArchiveService.UploadPdfBookAsync(
                 book: newBook,
-                fileBytes: uploadedFileBytes,
-                fileName: uploadedFileName,
+                pdfBytes: pdfBytes,
+                pdfFileName: pdfFileName,
+                coverBytes: coverBytes,
+                coverFileName: coverFileName,
                 actorName: actor.Username,
                 actorRole: actor.Role
             );
 
-            if (inscribed != null)
+            if (created != null)
             {
-                await OnTomeInscribed.InvokeAsync(inscribed);
+                await OnTomeInscribed.InvokeAsync(created);
                 ResetForm();
                 await Close();
             }
             else
             {
-                errorMessage = "Failed to publish book to library.";
+                errorMessage = "Failed to publish book. Please try again.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
+            errorMessage = ex.Message;
         }
         finally
         {
@@ -289,15 +332,16 @@
 
     private async Task Close()
     {
-        ResetForm();
-        await OnClose.InvokeAsync();
+        if (!isSaving)
+        {
+            await OnClose.InvokeAsync();
+        }
     }
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
+    private static string FormatSize(long bytes)
     {
-        if (e.Key == "Escape")
-        {
-            await Close();
-        }
+        if (bytes >= 1024 * 1024)
+            return $"{bytes / (1024.0 * 1024.0):0.0} MB";
+        return $"{Math.Max(1, bytes / 1024)} KB";
     }
 }

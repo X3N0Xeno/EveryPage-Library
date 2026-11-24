@@ -1,4 +1,4 @@
-@using MasyafArchive.Models
+﻿@using MasyafArchive.Models
 @using MasyafArchive.Services
 @inject AuthStateService AuthState
 
@@ -9,8 +9,6 @@
          @onkeydown="HandleKeyDown">
 
         <div class="relative w-full max-w-md bg-[#181614] border border-[#2E2A25] shadow-2xl rounded-sm overflow-hidden candle-glow">
-            
-            <!-- Top Header -->
             <div class="px-6 pt-6 pb-4 border-b border-[#2E2A25] bg-[#0F0E0D] text-center relative">
                 <button type="button"
                         @onclick="Close"
@@ -21,22 +19,20 @@
                     </svg>
                 </button>
 
-                <!-- Masyaf Seal Icon -->
                 <div class="w-12 h-12 mx-auto mb-3 rounded-full border border-[#C8963E]/40 flex items-center justify-center text-[#C8963E] bg-[#181614]">
-                    <svg class="w-6 h-6" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polygon points="50,15 85,80 50,65 15,80" />
-                        <circle cx="50" cy="50" r="10" />
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path>
                     </svg>
                 </div>
 
                 <h3 class="font-serif text-2xl font-bold text-[#EDE6D6] tracking-wide">
-                    @(isRegisterMode ? "Create Account" : "Sign In")
+                    @(isRegisterMode ? "Create Library Account" : "Sign In to EveryPage")
                 </h3>
                 <p class="text-xs font-mono text-[#9E9587] mt-1">
-                    Sign in to upload books and leave comments
+                    Upload PDF editions and post reader notes
                 </p>
 
-                <!-- Navigation Tabs: Sign In / Create Account -->
                 <div class="flex border-t border-[#2E2A25] mt-4 pt-2 -mx-6 px-6 bg-[#141210]">
                     <button type="button"
                             @onclick="() => isRegisterMode = false"
@@ -51,9 +47,7 @@
                 </div>
             </div>
 
-            <!-- Form Body -->
             <div class="p-6 space-y-4">
-                
                 @if (!string.IsNullOrWhiteSpace(statusMessage))
                 {
                     <div class="p-3 rounded-sm border text-xs font-mono @(isSuccess ? "border-[#C8963E] bg-[#C8963E]/10 text-[#EDE6D6]" : "border-[#9E332D] bg-[#9E332D]/10 text-[#EDE6D6]")">
@@ -61,55 +55,51 @@
                     </div>
                 }
 
-                <!-- One-Click Demo Fill Helpers -->
                 <div class="p-3 rounded-sm border border-[#2E2A25] bg-[#0F0E0D]">
                     <span class="block text-[10px] font-mono uppercase tracking-widest text-[#9E9587] mb-2">
-                        One-Click Demo Fill:
+                        Quick Demo Credentials:
                     </span>
                     <div class="flex items-center gap-2">
                         <button type="button"
                                 @onclick='() => DemoFill("Altair", "masyaf1191")'
                                 class="flex-1 px-2.5 py-1.5 text-[11px] font-mono border border-[#C8963E]/40 hover:border-[#C8963E] text-[#C8963E] bg-[#181614] rounded-sm transition-all hover:bg-[#201E1A] text-left">
-                            <span class="font-bold block">Demo: Auditor (Altair)</span>
-                            <span class="text-[9px] text-[#9E9587]">Auditor • masyaf1191</span>
+                            <span class="font-bold block">Auditor (Altair)</span>
+                            <span class="text-[9px] text-[#9E9587]">Moderator &bull; masyaf1191</span>
                         </button>
                         <button type="button"
                                 @onclick='() => DemoFill("Niccolo", "venice1257")'
                                 class="flex-1 px-2.5 py-1.5 text-[11px] font-mono border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] bg-[#181614] rounded-sm transition-all hover:bg-[#201E1A] text-left">
-                            <span class="font-bold block">Demo: Contributor (Niccolo)</span>
-                            <span class="text-[9px] text-[#9E9587]">Contributor • venice1257</span>
+                            <span class="font-bold block">Contributor (Niccolo)</span>
+                            <span class="text-[9px] text-[#9E9587]">Uploader &bull; venice1257</span>
                         </button>
                     </div>
                 </div>
 
                 <form @onsubmit="HandleSubmit" class="space-y-4">
-                    <!-- Username -->
                     <div>
                         <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-1">
                             Username
                         </label>
                         <input type="text"
                                @bind="username"
-                               placeholder="e.g. Altair"
+                               placeholder="Enter username"
                                required
                                disabled="@isLoading"
                                class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors" />
                     </div>
 
-                    <!-- Password / Passcode -->
                     <div>
                         <label class="block text-xs font-mono uppercase tracking-wider text-[#9E9587] mb-1">
                             Password
                         </label>
                         <input type="password"
                                @bind="passcode"
-                               placeholder="••••••••"
+                               placeholder="Enter password"
                                required
                                disabled="@isLoading"
                                class="w-full text-sm p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#C8963E] focus:outline-none transition-colors" />
                     </div>
 
-                    <!-- Submit Button -->
                     <div class="pt-2">
                         <button type="submit"
                                 disabled="@isLoading"
@@ -119,23 +109,9 @@
                                 <div class="w-3.5 h-3.5 border-2 border-[#0F0E0D] border-t-transparent rounded-full animate-spin"></div>
                                 <span>@(isRegisterMode ? "Creating Account..." : "Signing In...")</span>
                             }
-                            else if (!isRegisterMode)
-                            {
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                                <span>Sign In</span>
-                            }
                             else
                             {
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                                </svg>
-                                <span>Create Account</span>
+                                <span>@(isRegisterMode ? "Create Account" : "Sign In")</span>
                             }
                         </button>
                     </div>
@@ -146,14 +122,9 @@
 }
 
 @code {
-    [Parameter]
-    public bool IsOpen { get; set; }
-
-    [Parameter]
-    public EventCallback OnClose { get; set; }
-
-    [Parameter]
-    public EventCallback OnAuthenticated { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnAuthenticated { get; set; }
 
     private bool isRegisterMode = false;
     private string username = "";
@@ -167,7 +138,7 @@
         username = u;
         passcode = p;
         isRegisterMode = false;
-        statusMessage = $"Filled credentials for {u}. Click 'Sign In' to continue.";
+        statusMessage = $"Filled credentials for {u}. Click Sign In to continue.";
         isSuccess = true;
     }
 
@@ -185,29 +156,18 @@
 
         try
         {
-            if (isRegisterMode)
+            var (success, msg) = isRegisterMode
+                ? await AuthState.RegisterAsync(username, passcode)
+                : await AuthState.SignInAsync(username, passcode);
+
+            statusMessage = msg;
+            isSuccess = success;
+
+            if (success)
             {
-                var (success, msg) = await AuthState.RegisterAsync(username, passcode);
-                statusMessage = msg;
-                isSuccess = success;
-                if (success)
-                {
-                    await Task.Delay(400);
-                    await OnAuthenticated.InvokeAsync();
-                    await Close();
-                }
-            }
-            else
-            {
-                var (success, msg) = await AuthState.SignInAsync(username, passcode);
-                statusMessage = msg;
-                isSuccess = success;
-                if (success)
-                {
-                    await Task.Delay(400);
-                    await OnAuthenticated.InvokeAsync();
-                    await Close();
-                }
+                await Task.Delay(300);
+                await OnAuthenticated.InvokeAsync();
+                await Close();
             }
         }
         catch (Exception ex)
@@ -232,9 +192,6 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Escape")
-        {
-            await Close();
-        }
+        if (e.Key == "Escape") await Close();
     }
 }

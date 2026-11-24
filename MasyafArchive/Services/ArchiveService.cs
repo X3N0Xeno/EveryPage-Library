@@ -8,8 +8,15 @@ using static Supabase.Postgrest.Constants;
 
 namespace MasyafArchive.Services;
 
+/// <summary>
+/// All persistence for the library: catalog reads, comment threads, community PDF
+/// uploads, soft-delete moderation and the audit trail.
+/// </summary>
 public class ArchiveService
 {
+    private const string StorageBucket = "tomes";
+    private const string CommunitySource = "Community PDF";
+
     private readonly Supabase.Client _supabase;
 
     public ArchiveService(Supabase.Client supabase)
@@ -17,7 +24,11 @@ public class ArchiveService
         _supabase = supabase;
     }
 
-    public async Task<List<Book>> GetBooksAsync(string? category = null, string? searchQuery = null, int limit = 50, int offset = 0)
+    // -------------------------------------------------------------------------
+    // Catalog reads
+    // -------------------------------------------------------------------------
+
+    public async Task<List<Book>> GetBooksAsync(string? category = null, string? searchQuery = null, int limit = 60, int offset = 0)
     {
         try
         {
@@ -40,9 +51,9 @@ public class ArchiveService
             {
                 var term = searchQuery.Trim();
                 books = books.Where(b =>
-                    (b.Title != null && b.Title.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                    (b.Author != null && b.Author.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                    (b.Synopsis != null && b.Synopsis.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    Contains(b.Title, term) ||
+                    Contains(b.Author, term) ||
+                    Contains(b.Synopsis, term)
                 ).ToList();
             }
 
@@ -59,16 +70,123 @@ public class ArchiveService
     {
         try
         {
-            var response = await _supabase.From<Book>()
+            return await _supabase.From<Book>()
                 .Where(b => b.Id == id)
                 .Single();
-            return response;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[ArchiveService] Error getting book #{id}: {ex.Message}");
             return null;
         }
+    }
+
+    public async Task<Book?> FindByExternalIdAsync(string externalId)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            return null;
+        }
+
+        try
+        {
+            var response = await _supabase.From<Book>()
+                .Where(b => b.ExternalId == externalId && b.DeletedAt == null)
+                .Limit(1)
+                .Get();
+
+            return response.Models.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ArchiveService] Error looking up external book '{externalId}': {ex.Message}");
+            return null;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Federation bookkeeping
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Makes sure an external search result exists in public.books so comments and
+    /// download counts can be attached to it. Returns the stored row (with a real
+    /// catalog id) or the original book when it could not be saved.
+    /// </summary>
+    public async Task<Book> EnsureIndexedAsync(Book book)
+    {
+        if (book.IsIndexed)
+        {
+            return book;
+        }
+
+        if (!string.IsNullOrWhiteSpace(book.ExternalId))
+        {
+            var existing = await FindByExternalIdAsync(book.ExternalId);
+            if (existing != null)
+            {
+                return existing;
+            }
+        }
+
+        try
+        {
+            var payload = BuildIndexableCopy(book);
+            var response = await _supabase.From<Book>().Insert(payload);
+            return response.Models.FirstOrDefault() ?? payload;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ArchiveService] Could not index '{book.Title}': {ex.Message}");
+            return book;
+        }
+    }
+
+    /// <summary>
+    /// Records a download. External books are inserted with download_count = 1,
+    /// already-indexed books are incremented. Returns the persisted book.
+    /// </summary>
+    public async Task<Book> RegisterDownloadAsync(Book book, string actorName, string actorRole)
+    {
+        if (!book.IsIndexed)
+        {
+            var indexed = await InsertWithDownloadCountAsync(book, 1);
+            await LogAuditAsync(
+                actorName: actorName,
+                actorRole: actorRole,
+                action: "DOWNLOAD_BOOK",
+                targetType: "Book",
+                targetTitle: book.Title,
+                details: $"Downloaded '{book.Title}' from {book.SourceBadge} and added it to the library catalog."
+            );
+
+            return indexed;
+        }
+
+        var stored = await GetBookByIdAsync(book.Id) ?? book;
+        stored.DownloadCount += 1;
+
+        try
+        {
+            await _supabase.From<Book>()
+                .Where(b => b.Id == stored.Id)
+                .Update(stored);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ArchiveService] Error incrementing download count for #{book.Id}: {ex.Message}");
+        }
+
+        await LogAuditAsync(
+            actorName: actorName,
+            actorRole: actorRole,
+            action: "DOWNLOAD_BOOK",
+            targetType: "Book",
+            targetTitle: stored.Title,
+            details: $"Downloaded '{stored.Title}' ({stored.SourceBadge}). Total downloads: {stored.DownloadCount}."
+        );
+
+        return stored;
     }
 
     public async Task<bool> IncrementDownloadCountAsync(long bookId)
@@ -91,6 +209,59 @@ public class ArchiveService
             return false;
         }
     }
+
+    private async Task<Book> InsertWithDownloadCountAsync(Book book, int downloadCount)
+    {
+        if (!string.IsNullOrWhiteSpace(book.ExternalId))
+        {
+            var existing = await FindByExternalIdAsync(book.ExternalId);
+            if (existing != null)
+            {
+                existing.DownloadCount += downloadCount;
+                await _supabase.From<Book>().Where(b => b.Id == existing.Id).Update(existing);
+                return existing;
+            }
+        }
+
+        try
+        {
+            var payload = BuildIndexableCopy(book);
+            payload.DownloadCount = downloadCount;
+            var response = await _supabase.From<Book>().Insert(payload);
+            return response.Models.FirstOrDefault() ?? payload;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ArchiveService] Could not store download record for '{book.Title}': {ex.Message}");
+            return book;
+        }
+    }
+
+    private static Book BuildIndexableCopy(Book book) => new()
+    {
+        Title = book.Title,
+        Author = book.Author,
+        Category = BookGenres.ToStorage(book.Category),
+        Synopsis = book.Synopsis,
+        ContentText = book.ContentText ?? string.Empty,
+        FileUrl = book.FileUrl,
+        PdfUrl = book.PdfUrl,
+        EpubUrl = book.EpubUrl,
+        CoverUrl = book.CoverUrl,
+        PublicationYear = book.PublicationYear,
+        SourceName = book.SourceBadge,
+        ExternalId = book.ExternalId,
+        UploadedBy = string.IsNullOrWhiteSpace(book.UploadedBy) ? "Open Web" : book.UploadedBy,
+        DownloadCount = book.DownloadCount,
+        DeletedAt = null
+    };
+
+    private static bool Contains(string? haystack, string term) =>
+        haystack != null && haystack.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+    // -------------------------------------------------------------------------
+    // Reader comments
+    // -------------------------------------------------------------------------
 
     public async Task<List<BookComment>> GetCommentsForBookAsync(long bookId)
     {
@@ -128,10 +299,10 @@ public class ArchiveService
             await LogAuditAsync(
                 actorName: authorName,
                 actorRole: authorRole,
-                action: "INSCRIBE_MARGIN_NOTE",
-                targetType: "Codex Note",
+                action: "POST_COMMENT",
+                targetType: "Comment",
                 targetTitle: bookTitle,
-                details: $"Margin note inscribed into Tome #{bookId}: \"{(body.Length > 60 ? body[..60] + "..." : body)}\""
+                details: $"Comment added to '{bookTitle}': \"{(body.Length > 60 ? body[..60] + "..." : body)}\""
             );
 
             return inserted;
@@ -147,24 +318,24 @@ public class ArchiveService
     {
         try
         {
-            var response = await _supabase.From<BookComment>()
+            var comment = await _supabase.From<BookComment>()
                 .Where(c => c.Id == commentId)
                 .Single();
 
-            if (response == null) return false;
+            if (comment == null) return false;
 
-            response.DeletedAt = DateTime.UtcNow;
+            comment.DeletedAt = DateTime.UtcNow;
             await _supabase.From<BookComment>()
                 .Where(c => c.Id == commentId)
-                .Update(response);
+                .Update(comment);
 
             await LogAuditAsync(
                 actorName: actorName,
                 actorRole: actorRole,
-                action: "SEAL_MARGIN_NOTE",
-                targetType: "Codex Note",
+                action: "DELETE_COMMENT",
+                targetType: "Comment",
                 targetTitle: bookTitle,
-                details: $"Margin Note #{commentId} sealed and removed from public view in Tome #{bookId}."
+                details: $"Comment #{commentId} was removed from public view on '{bookTitle}'."
             );
 
             return true;
@@ -176,65 +347,98 @@ public class ArchiveService
         }
     }
 
-    public async Task<Book?> InscribeBookAsync(Book book, byte[]? fileBytes, string? fileName, string actorName, string actorRole)
+    // -------------------------------------------------------------------------
+    // Community PDF uploads and metadata editing
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Stores a community PDF (and optional cover image) in the "tomes" bucket, then
+    /// inserts the catalog record. Exceptions are surfaced to the caller so the
+    /// upload form can show the real error message.
+    /// </summary>
+    public async Task<Book> UploadPdfBookAsync(
+        Book book,
+        byte[] pdfBytes,
+        string pdfFileName,
+        byte[]? coverBytes,
+        string? coverFileName,
+        string actorName,
+        string actorRole)
     {
-        try
+        if (pdfBytes == null || pdfBytes.Length == 0)
         {
-            if (fileBytes != null && !string.IsNullOrWhiteSpace(fileName))
-            {
-                var cleanFileName = Path.GetFileName(fileName).Replace(" ", "_");
-                var storagePath = $"{DateTime.UtcNow.Ticks}_{cleanFileName}";
-                
-                await _supabase.Storage.From("tomes").Upload(
-                    fileBytes,
-                    storagePath,
-                    new Supabase.Storage.FileOptions { Upsert = true }
-                );
-
-                book.FileUrl = _supabase.Storage.From("tomes").GetPublicUrl(storagePath);
-            }
-
-            book.UploadedBy = actorName;
-            book.CreatedAt = DateTime.UtcNow;
-            book.DownloadCount = 0;
-            book.DeletedAt = null;
-
-            var response = await _supabase.From<Book>().Insert(book);
-            var inserted = response.Models.FirstOrDefault() ?? book;
-
-            await LogAuditAsync(
-                actorName: actorName,
-                actorRole: actorRole,
-                action: "INSCRIBE_TOME",
-                targetType: "Book",
-                targetTitle: book.Title,
-                details: $"New tome inscribed under category '{book.Category}' by {book.Author}."
-            );
-
-            return inserted;
+            throw new InvalidOperationException("The selected PDF file is empty.");
         }
-        catch (Exception ex)
+
+        if (!pdfFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine($"[ArchiveService] Error inscribing book: {ex.Message}");
-            return null;
+            throw new InvalidOperationException("Only .pdf files can be uploaded to the library.");
         }
+
+        var storage = _supabase.Storage.From(StorageBucket);
+
+        var pdfPath = $"{Guid.NewGuid():N}_{SanitizeStorageName(pdfFileName, "book.pdf")}";
+        await storage.Upload(pdfBytes, pdfPath, new Supabase.Storage.FileOptions { Upsert = true });
+        var publicPdfUrl = storage.GetPublicUrl(pdfPath);
+
+        string? publicCoverUrl = null;
+        if (coverBytes is { Length: > 0 } && !string.IsNullOrWhiteSpace(coverFileName))
+        {
+            var coverPath = $"{Guid.NewGuid():N}_{SanitizeStorageName(coverFileName, "cover.jpg")}";
+            await storage.Upload(coverBytes, coverPath, new Supabase.Storage.FileOptions { Upsert = true });
+            publicCoverUrl = storage.GetPublicUrl(coverPath);
+        }
+
+        var record = BuildIndexableCopy(book);
+        record.Category = BookGenres.ToStorage(book.Category);
+        record.SourceName = CommunitySource;
+        record.ExternalId = null;
+        record.PdfUrl = publicPdfUrl;
+        record.FileUrl = publicPdfUrl;
+        record.EpubUrl = null;
+        record.CoverUrl = publicCoverUrl ?? book.CoverUrl;
+        record.UploadedBy = actorName;
+        record.DownloadCount = 0;
+        record.DeletedAt = null;
+
+        var response = await _supabase.From<Book>().Insert(record);
+        var inserted = response.Models.FirstOrDefault() ?? record;
+
+        await LogAuditAsync(
+            actorName: actorName,
+            actorRole: actorRole,
+            action: "UPLOAD_BOOK",
+            targetType: "Book",
+            targetTitle: inserted.Title,
+            details: $"Uploaded community PDF '{inserted.Title}' by {inserted.Author} ({inserted.GenreLabel})."
+        );
+
+        return inserted;
     }
 
+    /// <summary>Auditor metadata edit — bibliographic fields only, no book text.</summary>
     public async Task<bool> UpdateBookAsync(Book book, string actorName, string actorRole)
     {
         try
         {
+            var stored = await GetBookByIdAsync(book.Id) ?? book;
+            stored.Title = book.Title;
+            stored.Author = book.Author;
+            stored.Category = BookGenres.ToStorage(book.Category);
+            stored.Synopsis = book.Synopsis;
+            stored.PublicationYear = book.PublicationYear;
+
             await _supabase.From<Book>()
-                .Where(b => b.Id == book.Id)
-                .Update(book);
+                .Where(b => b.Id == stored.Id)
+                .Update(stored);
 
             await LogAuditAsync(
                 actorName: actorName,
                 actorRole: actorRole,
-                action: "EDIT_TOME_METADATA",
+                action: "EDIT_BOOK",
                 targetType: "Book",
-                targetTitle: book.Title,
-                details: $"Metadata updated for Tome #{book.Id} ({book.Category})."
+                targetTitle: stored.Title,
+                details: $"Metadata updated for book #{stored.Id} ({stored.GenreLabel})."
             );
 
             return true;
@@ -261,10 +465,10 @@ public class ArchiveService
             await LogAuditAsync(
                 actorName: actorName,
                 actorRole: actorRole,
-                action: "SEAL_TOME",
+                action: "DELETE_BOOK",
                 targetType: "Book",
                 targetTitle: book.Title,
-                details: $"Tome #{bookId} sealed by Auditor. Reason: {(string.IsNullOrWhiteSpace(reason) ? "No reason specified" : reason)}"
+                details: $"Book #{bookId} removed from the catalog. Reason: {(string.IsNullOrWhiteSpace(reason) ? "No reason specified" : reason)}"
             );
 
             return true;
@@ -291,10 +495,10 @@ public class ArchiveService
             await LogAuditAsync(
                 actorName: actorName,
                 actorRole: actorRole,
-                action: "UNSEAL_TOME",
+                action: "RESTORE_BOOK",
                 targetType: "Book",
                 targetTitle: book.Title,
-                details: $"Tome #{bookId} unsealed and restored to public archive shelves."
+                details: $"Book #{bookId} restored to the public catalog."
             );
 
             return true;
@@ -320,10 +524,14 @@ public class ArchiveService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ArchiveService] Error fetching sealed books: {ex.Message}");
+            Console.WriteLine($"[ArchiveService] Error fetching deleted books: {ex.Message}");
             return new List<Book>();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Audit trail and statistics
+    // -------------------------------------------------------------------------
 
     public async Task<List<AuditLog>> GetAuditLogsAsync(string? filterAction = null, int limit = 100, int offset = 0)
     {
@@ -356,8 +564,8 @@ public class ArchiveService
         {
             var entry = new AuditLog
             {
-                ActorName = string.IsNullOrWhiteSpace(actorName) ? "Anonymous Traveler" : actorName,
-                ActorRole = string.IsNullOrWhiteSpace(actorRole) ? "traveler" : actorRole,
+                ActorName = string.IsNullOrWhiteSpace(actorName) ? "Guest reader" : actorName,
+                ActorRole = string.IsNullOrWhiteSpace(actorRole) ? "reader" : actorRole,
                 Action = action,
                 TargetType = targetType,
                 TargetTitle = targetTitle,
@@ -373,7 +581,7 @@ public class ArchiveService
         }
     }
 
-    public async Task<(int TotalBooks, int ActiveCodices, int TotalDownloads, int TotalLogs)> GetArchiveStatsAsync()
+    public async Task<(int TotalBooks, int CommunityPdfs, int TotalDownloads, int TotalLogs)> GetArchiveStatsAsync()
     {
         try
         {
@@ -383,14 +591,31 @@ public class ArchiveService
 
             int totalBooks = activeBooks.Models.Count;
             int totalDownloads = activeBooks.Models.Sum(b => b.DownloadCount);
-            int codexCount = activeBooks.Models.Count(b => b.Category.Equals("Codex", StringComparison.OrdinalIgnoreCase));
+            int communityPdfs = activeBooks.Models.Count(b =>
+                b.SourceName.Equals(CommunitySource, StringComparison.OrdinalIgnoreCase));
 
-            return (totalBooks, codexCount, totalDownloads, 0);
+            return (totalBooks, communityPdfs, totalDownloads, 0);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[ArchiveService] Error getting stats: {ex.Message}");
             return (0, 0, 0, 0);
         }
+    }
+
+    /// <summary>Keeps only characters that are safe inside a storage object key.</summary>
+    private static string SanitizeStorageName(string fileName, string fallback)
+    {
+        var name = Path.GetFileName(fileName);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return fallback;
+        }
+
+        var cleaned = new string(name
+            .Select(ch => char.IsLetterOrDigit(ch) || ch == '.' || ch == '-' || ch == '_' ? ch : '_')
+            .ToArray());
+
+        return cleaned.Length == 0 ? fallback : cleaned;
     }
 }

@@ -1,4 +1,4 @@
-@using MasyafArchive.Models
+﻿@using MasyafArchive.Models
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
@@ -9,107 +9,72 @@
          tabindex="-1"
          @onkeydown="HandleKeyDown">
 
-        <!-- Outer Modal Frame -->
-        <div class="relative w-full max-w-5xl h-[92vh] max-h-[900px] flex flex-col rounded-sm border border-[#2E2A25] shadow-2xl overflow-hidden @(IsParchmentMode ? "reader-parchment-mode" : "reader-stone-mode")">
-            
+        <div class="relative w-full max-w-6xl h-[92vh] max-h-[920px] flex flex-col rounded-sm border border-[#2E2A25] shadow-2xl overflow-hidden @(IsParchmentMode ? "reader-parchment-mode" : "reader-stone-mode")">
             <!-- Top Controls Bar -->
-            <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b @(IsParchmentMode ? "border-[#D3C5A6] bg-[#EAE2CE]" : "border-[#2E2A25] bg-[#181614]") z-10 select-none">
-                
-                <!-- Left: Title & Moniker -->
+            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b @(IsParchmentMode ? "border-[#D3C5A6] bg-[#EAE2CE]" : "border-[#2E2A25] bg-[#181614]") z-10 select-none">
                 <div class="flex items-center gap-3 min-w-0">
                     <span class="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm border @(IsParchmentMode ? "border-[#B5A582] bg-[#F5EEDB] text-[#7A5B22]" : "border-[#2E2A25] bg-[#0F0E0D] text-[#C8963E]")">
-                        @(Book.Category == "Codex" ? "General" : Book.Category)
+                        @Book.GenreLabel
+                    </span>
+                    <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm border @(IsParchmentMode ? "border-[#C9BA9B] bg-[#DFD6BF] text-[#42382F]" : "border-[#2E2A25] bg-[#0F0E0D] text-[#9E9587]")">
+                        @Book.SourceBadge
                     </span>
                     <div class="truncate">
                         <h2 class="font-serif text-lg sm:text-xl font-bold truncate @(IsParchmentMode ? "text-[#241D17]" : "text-[#EDE6D6]")">
                             @Book.Title
                         </h2>
                         <span class="text-xs @(IsParchmentMode ? "text-[#5C5042]" : "text-[#9E9587]")">
-                            By @Book.Author • Uploaded by @Book.UploadedBy
+                            By @Book.Author @(!string.IsNullOrWhiteSpace(Book.PublicationYear) ? $"({Book.PublicationYear})" : "")
                         </span>
                     </div>
                 </div>
 
-                <!-- Right: Tool Controls (Theme, Font Size, View Mode, Download, Close) -->
-                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    
-                    <!-- Font Size Controls (S / M / L) -->
-                    <div class="flex items-center rounded-sm border @(IsParchmentMode ? "border-[#C9BA9B] bg-[#DFD6BF]" : "border-[#2E2A25] bg-[#0F0E0D]") p-0.5 text-xs font-mono">
-                        <button type="button"
-                                @onclick='() => SetFontSize("S")'
-                                class='px-2 py-1 rounded-sm transition-all @(FontSize == "S" ? (IsParchmentMode ? "bg-[#C8963E] text-white" : "bg-[#C8963E] text-[#0F0E0D] font-bold") : "")'
-                                title="Small font">
-                            S
-                        </button>
-                        <button type="button"
-                                @onclick='() => SetFontSize("M")'
-                                class='px-2 py-1 rounded-sm transition-all @(FontSize == "M" ? (IsParchmentMode ? "bg-[#C8963E] text-white" : "bg-[#C8963E] text-[#0F0E0D] font-bold") : "")'
-                                title="Medium font">
-                            M
-                        </button>
-                        <button type="button"
-                                @onclick='() => SetFontSize("L")'
-                                class='px-2 py-1 rounded-sm transition-all @(FontSize == "L" ? (IsParchmentMode ? "bg-[#C8963E] text-white" : "bg-[#C8963E] text-[#0F0E0D] font-bold") : "")'
-                                title="Large font">
-                            L
-                        </button>
-                    </div>
-
-                    <!-- Theme Toggle: Parchment vs Dark Stone -->
-                    <button type="button"
-                            @onclick="ToggleTheme"
-                            class="px-2.5 py-1 text-xs font-medium rounded-sm border transition-all flex items-center gap-1.5 @(IsParchmentMode ? "border-[#C9BA9B] bg-[#DFD6BF] text-[#241D17]" : "border-[#2E2A25] bg-[#0F0E0D] text-[#EDE6D6] hover:border-[#8C6D3F]")">
-                        @if (IsParchmentMode)
-                        {
-                            <svg class="w-3.5 h-3.5 text-[#C8963E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="5"></circle>
-                                <line x1="12" y1="1" x2="12" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="23"></line>
-                            </svg>
-                            <span>Dark Mode</span>
-                        }
-                        else
-                        {
-                            <svg class="w-3.5 h-3.5 text-[#C8963E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                            <span>Parchment</span>
-                        }
-                    </button>
-
-                    <!-- PDF Toggle if PDF available -->
-                    @if (HasPdf)
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if (!HasEmbeddableDocument)
                     {
-                        <div class="flex items-center rounded-sm border @(IsParchmentMode ? "border-[#C9BA9B] bg-[#DFD6BF]" : "border-[#2E2A25] bg-[#0F0E0D]") p-0.5 text-xs">
-                            <button type="button"
-                                    @onclick='() => ShowPdfView = false'
-                                    class='px-2 py-1 rounded-sm transition-all @(!ShowPdfView ? "bg-[#C8963E] text-[#0F0E0D] font-semibold" : "")'>
-                                Readable Text
-                            </button>
-                            <button type="button"
-                                    @onclick='() => ShowPdfView = true'
-                                    class='px-2 py-1 rounded-sm transition-all @(ShowPdfView ? "bg-[#C8963E] text-[#0F0E0D] font-semibold" : "")'>
-                                PDF Document
-                            </button>
+                        <div class="flex items-center rounded-sm border @(IsParchmentMode ? "border-[#C9BA9B] bg-[#DFD6BF]" : "border-[#2E2A25] bg-[#0F0E0D]") p-0.5 text-xs font-mono">
+                            <button type="button" @onclick='() => FontSize = "S"' class='px-2 py-1 rounded-sm @(FontSize == "S" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "")'>S</button>
+                            <button type="button" @onclick='() => FontSize = "M"' class='px-2 py-1 rounded-sm @(FontSize == "M" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "")'>M</button>
+                            <button type="button" @onclick='() => FontSize = "L"' class='px-2 py-1 rounded-sm @(FontSize == "L" ? "bg-[#C8963E] text-[#0F0E0D] font-bold" : "")'>L</button>
                         </div>
+
+                        <button type="button"
+                                @onclick="() => IsParchmentMode = !IsParchmentMode"
+                                class="px-2.5 py-1 text-xs font-medium rounded-sm border transition-all @(IsParchmentMode ? "border-[#C9BA9B] bg-[#DFD6BF] text-[#241D17]" : "border-[#2E2A25] bg-[#0F0E0D] text-[#EDE6D6] hover:border-[#8C6D3F]")">
+                            @(IsParchmentMode ? "Dark Stone" : "Parchment")
+                        </button>
                     }
 
-                    <!-- Download Book Button -->
-                    <button type="button"
-                            @onclick="() => OnDownload.InvokeAsync(Book)"
-                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <span>Download</span>
-                    </button>
+                    @if (!string.IsNullOrWhiteSpace(EffectivePdfUrl))
+                    {
+                        <button type="button"
+                                @onclick='() => TriggerFormatDownload("pdf")'
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm">
+                            <span>Download PDF</span>
+                        </button>
+                    }
 
-                    <!-- Close Button -->
+                    @if (!string.IsNullOrWhiteSpace(Book.EpubUrl))
+                    {
+                        <button type="button"
+                                @onclick='() => TriggerFormatDownload("epub")'
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[#C8963E]/50 hover:border-[#C8963E] text-[#C8963E] bg-[#0F0E0D] rounded-sm transition-all">
+                            <span>Download EPUB</span>
+                        </button>
+                    }
+
+                    @if (string.IsNullOrWhiteSpace(EffectivePdfUrl) && string.IsNullOrWhiteSpace(Book.EpubUrl))
+                    {
+                        <button type="button"
+                                @onclick='() => TriggerFormatDownload("txt")'
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm">
+                            <span>Download Book</span>
+                        </button>
+                    }
+
                     <button type="button"
                             @onclick="Close"
-                            class="p-1 rounded-sm hover:opacity-75 transition-opacity @(IsParchmentMode ? "text-[#5C5042] hover:text-[#241D17]" : "text-[#9E9587] hover:text-[#EDE6D6]")"
+                            class="p-1.5 rounded-sm hover:opacity-75 transition-opacity @(IsParchmentMode ? "text-[#5C5042] hover:text-[#241D17]" : "text-[#9E9587] hover:text-[#EDE6D6]")"
                             title="Close Reader (Esc)">
                         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -119,21 +84,30 @@
                 </div>
             </div>
 
-            <!-- Main Reading & Comments Split Layout -->
+            <!-- Reader + Comments Split View -->
             <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x @(IsParchmentMode ? "divide-[#D3C5A6]" : "divide-[#2E2A25]")">
-                
-                <!-- Left 2 Cols: Main Book Content -->
-                <div class="lg:col-span-2 overflow-y-auto p-6 sm:p-10 reader-content-scroll">
-                    @if (ShowPdfView && HasPdf)
+                <!-- Left 2 Cols: Document / Text Viewer -->
+                <div class="lg:col-span-2 overflow-y-auto @(HasEmbeddableDocument ? "p-0 bg-[#0F0E0D]" : "p-6 sm:p-10")">
+                    @if (!string.IsNullOrWhiteSpace(ArchiveEmbedUrl))
                     {
-                        <div class="w-full h-full min-h-[500px]">
-                            <iframe src="@Book.FileUrl" class="w-full h-full min-h-[580px] rounded border @(IsParchmentMode ? "border-[#C9BA9B]" : "border-[#2E2A25]")"></iframe>
-                        </div>
+                        <iframe src="@ArchiveEmbedUrl"
+                                title="@Book.Title"
+                                allowfullscreen
+                                class="w-full h-full min-h-[560px] border-0"></iframe>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(EffectivePdfUrl))
+                    {
+                        <iframe src="@EffectivePdfUrl"
+                                title="@Book.Title"
+                                class="w-full h-full min-h-[560px] border-0"></iframe>
                     }
                     else
                     {
-                        <!-- Manuscript Header -->
                         <div class="max-w-2xl mx-auto mb-8 text-center">
+                            @if (!string.IsNullOrWhiteSpace(Book.CoverUrl))
+                            {
+                                <img src="@Book.CoverUrl" alt="@Book.Title cover" class="w-28 h-40 object-cover mx-auto mb-5 rounded-sm border border-[#2E2A25] shadow-lg" />
+                            }
                             <div class="sacred-divider">
                                 <div class="sacred-divider-diamond"></div>
                             </div>
@@ -145,14 +119,13 @@
                             </p>
                             @if (!string.IsNullOrWhiteSpace(Book.Synopsis))
                             {
-                                <div class="p-4 rounded border text-sm italic leading-relaxed text-left mb-6 @(IsParchmentMode ? "bg-[#EDE4CD] border-[#D3C5A6] text-[#42382F]" : "bg-[#0F0E0D] border-[#2E2A25] text-[#9E9587]")">
-                                    <strong class="font-sans font-semibold not-italic block text-xs tracking-wider uppercase mb-1 text-[#C8963E]">Description</strong>
+                                <div class="p-4 rounded-sm border text-sm italic leading-relaxed text-left mb-6 @(IsParchmentMode ? "bg-[#EDE4CD] border-[#D3C5A6] text-[#42382F]" : "bg-[#0F0E0D] border-[#2E2A25] text-[#9E9587]")">
+                                    <strong class="font-sans font-semibold not-italic block text-xs tracking-wider uppercase mb-1 text-[#C8963E]">Edition Overview</strong>
                                     @Book.Synopsis
                                 </div>
                             }
                         </div>
 
-                        <!-- Book Body Text -->
                         <div class="max-w-2xl mx-auto @GetFontSizeClass() leading-relaxed space-y-6 @(IsParchmentMode ? "text-[#262019]" : "text-[#EDE6D6]")">
                             @{
                                 var paragraphs = (Book.ContentText ?? string.Empty)
@@ -162,106 +135,88 @@
 
                             @if (paragraphs.Length == 0)
                             {
-                                <p class="italic text-center text-[#9E9587] py-12">
-                                    This book currently has no readable text. If a PDF is attached, click "PDF Document" above to view it.
-                                </p>
+                                <div class="p-6 rounded-sm border border-[#2E2A25] bg-[#181614] text-center space-y-4">
+                                    <p class="text-sm text-[#EDE6D6]">
+                                        This edition is hosted on <strong>@Book.SourceBadge</strong> and is ready for direct download.
+                                    </p>
+                                    <p class="text-xs text-[#9E9587]">
+                                        Click any download button above to save the book directly to your device without leaving EveryPage Library.
+                                    </p>
+                                </div>
                             }
                             else
                             {
                                 @foreach (var p in paragraphs)
                                 {
-                                    if (p.Trim().StartsWith("CHAPTER", StringComparison.OrdinalIgnoreCase) ||
-                                        p.Trim().StartsWith("SECTION", StringComparison.OrdinalIgnoreCase) ||
-                                        p.Trim().StartsWith("ENTRY", StringComparison.OrdinalIgnoreCase))
+                                    if (isFirst)
                                     {
-                                        <div class="pt-6 pb-2 text-center">
-                                            <div class="sacred-divider my-4">
-                                                <div class="sacred-divider-diamond"></div>
-                                            </div>
-                                            <h4 class="font-serif text-xl sm:text-2xl font-bold uppercase tracking-widest text-[#C8963E]">
-                                                @p.Trim()
-                                            </h4>
-                                        </div>
-                                    }
-                                    else if (isFirst)
-                                    {
-                                        <p class="drop-cap font-serif text-justify">
-                                            @p.Trim()
-                                        </p>
+                                        <p class="drop-cap font-serif text-justify">@p.Trim()</p>
                                         isFirst = false;
                                     }
                                     else
                                     {
-                                        <p class="font-serif text-justify">
-                                            @p.Trim()
-                                        </p>
+                                        <p class="font-serif text-justify">@p.Trim()</p>
                                     }
                                 }
                             }
 
-                            <!-- End of Book Divider -->
-                            <div class="pt-12 pb-6 text-center">
+                            <div class="pt-10 pb-4 text-center">
                                 <div class="sacred-divider">
                                     <div class="sacred-divider-diamond"></div>
                                 </div>
                                 <p class="font-mono text-xs text-[#9E9587] uppercase tracking-widest">
-                                    End of Book • The Masyaf Archive
+                                    EveryPage Library &bull; @Book.SourceBadge
                                 </p>
                             </div>
                         </div>
                     }
                 </div>
 
-                <!-- Right Col: Comments Column -->
-                <div class="lg:col-span-1 flex flex-col h-full @(IsParchmentMode ? "bg-[#EDE5D0]" : "bg-[#181614]") overflow-hidden">
-                    
-                    <!-- Comments Header -->
-                    <div class="p-4 border-b @(IsParchmentMode ? "border-[#D3C5A6]" : "border-[#2E2A25]") flex items-center justify-between">
+                <!-- Right Col: Reader Notes & Comments -->
+                <div class="lg:col-span-1 flex flex-col h-full @(IsParchmentMode && !HasEmbeddableDocument ? "bg-[#EDE5D0]" : "bg-[#181614]") overflow-hidden">
+                    <div class="p-4 border-b @(IsParchmentMode && !HasEmbeddableDocument ? "border-[#D3C5A6]" : "border-[#2E2A25]") flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-[#C8963E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                             </svg>
-                            <h3 class="font-serif text-base font-bold uppercase tracking-wider @(IsParchmentMode ? "text-[#241D17]" : "text-[#EDE6D6]")">
-                                Comments
+                            <h3 class="font-serif text-base font-bold uppercase tracking-wider @(IsParchmentMode && !HasEmbeddableDocument ? "text-[#241D17]" : "text-[#EDE6D6]")">
+                                Reader Notes
                             </h3>
-                            <span class="font-mono text-xs px-2 py-0.5 rounded-full @(IsParchmentMode ? "bg-[#DFD6BF] text-[#241D17]" : "bg-[#0F0E0D] text-[#C8963E]")">
+                            <span class="font-mono text-xs px-2 py-0.5 rounded-full @(IsParchmentMode && !HasEmbeddableDocument ? "bg-[#DFD6BF] text-[#241D17]" : "bg-[#0F0E0D] text-[#C8963E]")">
                                 @Comments.Count
                             </span>
                         </div>
                     </div>
 
-                    <!-- Comments List -->
                     <div class="flex-1 overflow-y-auto p-4 space-y-3">
                         @if (isLoadingComments)
                         {
-                            <div class="py-8 text-center text-xs font-mono text-[#9E9587]">
-                                Loading comments...
-                            </div>
+                            <div class="py-8 text-center text-xs font-mono text-[#9E9587]">Loading notes...</div>
                         }
                         else if (Comments.Count == 0)
                         {
                             <div class="py-12 text-center text-xs font-mono text-[#9E9587] space-y-2">
-                                <p>No comments yet.</p>
-                                <p class="text-[11px] opacity-75">Be the first to leave a comment on this book.</p>
+                                <p>No reader notes yet.</p>
+                                <p class="text-[11px] opacity-75">Share your thoughts or edition notes on this book.</p>
                             </div>
                         }
                         else
                         {
                             @foreach (var comment in Comments)
                             {
-                                <div class="p-3 rounded-sm border text-xs transition-all @(IsParchmentMode ? "bg-[#F5EEDB] border-[#D3C5A6] text-[#241D17]" : "bg-[#0F0E0D] border-[#2E2A25] text-[#EDE6D6]")">
+                                <div class="p-3 rounded-sm border text-xs @(IsParchmentMode && !HasEmbeddableDocument ? "bg-[#F5EEDB] border-[#D3C5A6] text-[#241D17]" : "bg-[#0F0E0D] border-[#2E2A25] text-[#EDE6D6]")">
                                     <div class="flex items-center justify-between mb-1.5 gap-2">
                                         <div class="flex items-center gap-2">
                                             <span class="font-semibold text-[#C8963E]">@comment.AuthorName</span>
                                             <span class="text-[10px] font-mono text-[#9E9587]">
-                                                @comment.CreatedAt.ToUniversalTime().ToString("MMM dd, yyyy HH:mm") UTC
+                                                @comment.CreatedAt.ToUniversalTime().ToString("MMM dd, yyyy")
                                             </span>
                                         </div>
 
-                                        <!-- Delete Note if Author or Auditor -->
                                         @if (CanDeleteComment(comment))
                                         {
-                                            <button @onclick="() => SoftDeleteComment(comment.Id)"
+                                            <button type="button"
+                                                    @onclick="() => SoftDeleteComment(comment.Id)"
                                                     title="Delete Comment"
                                                     class="text-[#9E9587] hover:text-[#9E332D] transition-colors p-1">
                                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -271,30 +226,26 @@
                                             </button>
                                         }
                                     </div>
-                                    <p class="leading-relaxed whitespace-pre-wrap font-sans">
-                                        @comment.Body
-                                    </p>
+                                    <p class="leading-relaxed whitespace-pre-wrap font-sans">@comment.Body</p>
                                 </div>
                             }
                         }
                     </div>
 
-                    <!-- Post Comment Input -->
-                    <div class="p-4 border-t @(IsParchmentMode ? "border-[#D3C5A6] bg-[#EAE2CE]" : "border-[#2E2A25] bg-[#181614]")">
+                    <div class="p-4 border-t @(IsParchmentMode && !HasEmbeddableDocument ? "border-[#D3C5A6] bg-[#EAE2CE]" : "border-[#2E2A25] bg-[#181614]")">
                         @if (AuthState.IsAuthenticated)
                         {
                             <form @onsubmit="SubmitComment">
                                 <div class="mb-2">
                                     <label class="block text-[11px] font-mono uppercase tracking-wider text-[#9E9587] mb-1">
-                                        Posting as <span class="text-[#C8963E]">@AuthState.CurrentUser?.Username</span> (@(AuthState.IsAuditor ? "Auditor" : "Contributor"))
+                                        Posting as <span class="text-[#C8963E]">@AuthState.CurrentUser?.Username</span>
                                     </label>
                                     <textarea @bind="newCommentText"
                                               rows="2"
-                                              placeholder="Write a comment..."
+                                              placeholder="Write a note or review..."
                                               required
                                               disabled="@isSubmittingComment"
-                                              class="w-full text-xs p-2.5 rounded-sm border focus:outline-none transition-all @(IsParchmentMode ? "bg-[#F5EEDB] border-[#C9BA9B] text-[#241D17] focus:border-[#C8963E]" : "bg-[#0F0E0D] border-[#2E2A25] text-[#EDE6D6] focus:border-[#8C6D3F]")">
-                                    </textarea>
+                                              class="w-full text-xs p-2.5 rounded-sm border focus:outline-none transition-all @(IsParchmentMode && !HasEmbeddableDocument ? "bg-[#F5EEDB] border-[#C9BA9B] text-[#241D17] focus:border-[#C8963E]" : "bg-[#0F0E0D] border-[#2E2A25] text-[#EDE6D6] focus:border-[#8C6D3F]")"></textarea>
                                 </div>
 
                                 @if (!string.IsNullOrWhiteSpace(commentErrorMessage))
@@ -306,36 +257,18 @@
                                     <button type="submit"
                                             disabled="@(isSubmittingComment || string.IsNullOrWhiteSpace(newCommentText))"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] disabled:opacity-50 text-[#0F0E0D] rounded-sm transition-all shadow-sm">
-                                        @if (isSubmittingComment)
-                                        {
-                                            <span>Posting...</span>
-                                        }
-                                        else
-                                        {
-                                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                            </svg>
-                                            <span>Post Comment</span>
-                                        }
+                                        <span>@(isSubmittingComment ? "Posting..." : "Post Note")</span>
                                     </button>
                                 </div>
                             </form>
                         }
                         else
                         {
-                            <!-- Unauthenticated Gate Prompt -->
-                            <div class="text-center p-3 rounded-sm border border-dashed @(IsParchmentMode ? "border-[#C9BA9B] bg-[#F5EEDB]/50" : "border-[#2E2A25] bg-[#0F0E0D]")">
-                                <p class="text-xs text-[#9E9587] mb-2 font-sans">
-                                    Sign in to leave a comment.
-                                </p>
+                            <div class="text-center p-3 rounded-sm border border-dashed @(IsParchmentMode && !HasEmbeddableDocument ? "border-[#C9BA9B] bg-[#F5EEDB]/50" : "border-[#2E2A25] bg-[#0F0E0D]")">
+                                <p class="text-xs text-[#9E9587] mb-2">Sign in to post a note on this book.</p>
                                 <button type="button"
-                                        @onclick="TriggerSignIn"
+                                        @onclick="() => OnRequestSignIn.InvokeAsync()"
                                         class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-[#C8963E] hover:text-[#DDA84B] border border-[#C8963E]/40 hover:border-[#C8963E] rounded-sm transition-all">
-                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                    </svg>
                                     <span>Sign In</span>
                                 </button>
                             </div>
@@ -348,24 +281,14 @@
 }
 
 @code {
-    [Parameter]
-    public Book? Book { get; set; }
-
-    [Parameter]
-    public bool IsOpen { get; set; }
-
-    [Parameter]
-    public EventCallback OnClose { get; set; }
-
-    [Parameter]
-    public EventCallback<Book> OnDownload { get; set; }
-
-    [Parameter]
-    public EventCallback OnRequestSignIn { get; set; }
+    [Parameter] public Book? Book { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<(Book Book, string? Format)> OnDownloadFormat { get; set; }
+    [Parameter] public EventCallback OnRequestSignIn { get; set; }
 
     private bool IsParchmentMode { get; set; } = false;
-    private string FontSize { get; set; } = "M"; // S, M, L
-    private bool ShowPdfView { get; set; } = false;
+    private string FontSize { get; set; } = "M";
 
     private List<BookComment> Comments { get; set; } = new();
     private bool isLoadingComments { get; set; } = false;
@@ -373,7 +296,28 @@
     private bool isSubmittingComment { get; set; } = false;
     private string commentErrorMessage { get; set; } = "";
 
-    private bool HasPdf => Book?.FileUrl != null && Book.FileUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+    private string? EffectivePdfUrl =>
+        !string.IsNullOrWhiteSpace(Book?.PdfUrl)
+            ? Book!.PdfUrl
+            : (Book?.FileUrl?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true ? Book.FileUrl : null);
+
+    private string? ArchiveEmbedUrl
+    {
+        get
+        {
+            if (Book?.ExternalId != null &&
+                Book.ExternalId.StartsWith("ol-", StringComparison.OrdinalIgnoreCase) &&
+                !Book.ExternalId.StartsWith("ol-works/", StringComparison.OrdinalIgnoreCase))
+            {
+                var archiveId = Book.ExternalId["ol-".Length..];
+                return $"{OpenLibraryBookSource.ArchiveEmbedBaseUrl}{archiveId}";
+            }
+            return null;
+        }
+    }
+
+    private bool HasEmbeddableDocument =>
+        !string.IsNullOrWhiteSpace(ArchiveEmbedUrl) || !string.IsNullOrWhiteSpace(EffectivePdfUrl);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -386,6 +330,12 @@
     private async Task LoadCommentsAsync()
     {
         if (Book == null) return;
+        if (!Book.IsIndexed)
+        {
+            Comments = new List<BookComment>();
+            return;
+        }
+
         isLoadingComments = true;
         try
         {
@@ -399,16 +349,6 @@
         {
             isLoadingComments = false;
         }
-    }
-
-    private void ToggleTheme()
-    {
-        IsParchmentMode = !IsParchmentMode;
-    }
-
-    private void SetFontSize(string size)
-    {
-        FontSize = size;
     }
 
     private string GetFontSizeClass() => FontSize switch
@@ -434,6 +374,17 @@
 
         try
         {
+            if (!Book.IsIndexed)
+            {
+                Book = await ArchiveService.EnsureIndexedAsync(Book);
+            }
+
+            if (!Book.IsIndexed)
+            {
+                commentErrorMessage = "Could not index this external book for comments.";
+                return;
+            }
+
             var user = AuthState.CurrentUser!;
             var result = await ArchiveService.AddCommentAsync(
                 bookId: Book.Id,
@@ -450,7 +401,7 @@
             }
             else
             {
-                commentErrorMessage = "Failed to post comment.";
+                commentErrorMessage = "Failed to post note.";
             }
         }
         catch (Exception ex)
@@ -475,21 +426,18 @@
         }
     }
 
-    private async Task TriggerSignIn()
+    private async Task TriggerFormatDownload(string format)
     {
-        await OnRequestSignIn.InvokeAsync();
+        if (Book != null)
+        {
+            await OnDownloadFormat.InvokeAsync((Book, format));
+        }
     }
 
-    private async Task Close()
-    {
-        await OnClose.InvokeAsync();
-    }
+    private async Task Close() => await OnClose.InvokeAsync();
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Escape")
-        {
-            await Close();
-        }
+        if (e.Key == "Escape") await Close();
     }
 }

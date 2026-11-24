@@ -17,7 +17,7 @@ var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
 var supabaseKey = builder.Configuration["Supabase:Key"] ?? "";
 
 // Handle PostgreSQL URI fallback if provided
-if (supabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) || 
+if (supabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
     supabaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
 {
     var match = Regex.Match(supabaseUrl, @"postgres\.([a-z0-9]+)");
@@ -38,5 +38,13 @@ await supabaseClient.InitializeAsync();
 builder.Services.AddSingleton(supabaseClient);
 builder.Services.AddScoped<ArchiveService>();
 builder.Services.AddScoped<AuthStateService>();
+
+// Federated open-web book catalog (Gutendex + Open Library). Each source gets its
+// own client because the catalog URLs are absolute and slower than the app host.
+builder.Services.AddScoped(sp => new GutendexBookSource(CreateCatalogClient()));
+builder.Services.AddScoped(sp => new OpenLibraryBookSource(CreateCatalogClient()));
+builder.Services.AddScoped<FederatedBookService>();
+
+static HttpClient CreateCatalogClient() => new() { Timeout = TimeSpan.FromSeconds(30) };
 
 await builder.Build().RunAsync();

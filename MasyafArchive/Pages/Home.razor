@@ -1,57 +1,55 @@
-@page "/"
+﻿@page "/"
 @using MasyafArchive.Models
 @using MasyafArchive.Services
 @inject ArchiveService ArchiveService
+@inject FederatedBookService FederatedBooks
 @inject AuthStateService AuthState
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<!-- Atmospheric Hero Banner -->
+<!-- Hero Banner -->
 <div class="relative overflow-hidden border-b border-[#2E2A25] bg-gradient-to-b from-[#181614] via-[#121110] to-[#0F0E0D] py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-    <!-- Ambient geometric lines background -->
     <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#C8963E 1px, transparent 1px); background-size: 32px 32px;"></div>
 
     <div class="max-w-7xl mx-auto text-center relative z-10">
-        <!-- Creed Crest Mark -->
         <div class="w-16 h-16 mx-auto mb-4 rounded-full border border-[#C8963E]/30 bg-[#0F0E0D] flex items-center justify-center text-[#C8963E] shadow-xl">
-            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polygon points="50,15 85,80 50,65 15,80" />
-                <circle cx="50" cy="50" r="10" />
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path>
             </svg>
         </div>
 
         <p class="font-mono text-xs tracking-[0.3em] uppercase text-[#C8963E] mb-2">
-            Open-Source Digital Library
+            For the People, Built by the People
         </p>
 
         <h1 class="font-serif text-4xl sm:text-6xl font-bold tracking-tight text-[#EDE6D6] mb-4">
-            The Masyaf Archive
+            EveryPage Library
         </h1>
 
         <p class="max-w-2xl mx-auto font-serif italic text-base sm:text-lg text-[#9E9587] leading-relaxed mb-6">
-            "Open-Source Digital Library — Free to read online and download without an account."
+            "Everything Humanity Has Written, Open to Everyone."
         </p>
 
-        <!-- Dynamic Archive Counters -->
         <div class="inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 px-6 py-3 rounded-sm border border-[#2E2A25] bg-[#181614]/80 backdrop-blur-sm font-mono text-xs">
             <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Total Books</span>
-                <span class="text-base font-bold text-[#C8963E]">@stats.TotalBooks</span>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Shelf Loaded</span>
+                <span class="text-base font-bold text-[#C8963E]">@books.Count</span>
             </div>
             <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
             <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">General Books</span>
-                <span class="text-base font-bold text-[#EDE6D6]">@stats.ActiveCodices</span>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Community PDFs</span>
+                <span class="text-base font-bold text-[#EDE6D6]">@stats.CommunityPdfs</span>
             </div>
             <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
             <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Downloads</span>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Indexed Downloads</span>
                 <span class="text-base font-bold text-[#C8963E]">@stats.TotalDownloads</span>
             </div>
             <div class="w-px h-6 bg-[#2E2A25] hidden sm:block"></div>
             <div>
-                <span class="text-[#9E9587] uppercase text-[10px] block">Access</span>
-                <span class="text-base font-bold text-[#EDE6D6]">Free & Open</span>
+                <span class="text-[#9E9587] uppercase text-[10px] block">Sources</span>
+                <span class="text-base font-bold text-[#EDE6D6]">Community + Web</span>
             </div>
         </div>
     </div>
@@ -59,70 +57,67 @@
 
 <!-- Main Catalog Hall -->
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-    
-    <!-- Controls Bar: Category Filters & Instant Search -->
+    <!-- Genre Filter Pills & Unified Search -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-6 border-b border-[#2E2A25]">
-        
-        <!-- Category Filter Pills -->
         <div class="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none font-mono text-xs">
-            @foreach (var cat in new[] { "All", "Philosophy", "Systems", "History", "General" })
+            @foreach (var genre in BookGenres.Filters)
             {
                 <button type="button"
-                        @onclick="() => SelectCategory(cat)"
-                        class='px-4 py-2 rounded-sm uppercase tracking-wider transition-all whitespace-nowrap @(selectedCategory == cat ? "bg-[#C8963E] text-[#0F0E0D] font-bold shadow-md" : "bg-[#181614] border border-[#2E2A25] text-[#9E9587] hover:border-[#8C6D3F] hover:text-[#EDE6D6]")'>
-                    @cat
+                        @onclick="() => SelectCategory(genre)"
+                        class='px-3.5 py-2 rounded-sm uppercase tracking-wider transition-all whitespace-nowrap @(selectedCategory == genre ? "bg-[#C8963E] text-[#0F0E0D] font-bold shadow-md" : "bg-[#181614] border border-[#2E2A25] text-[#9E9587] hover:border-[#8C6D3F] hover:text-[#EDE6D6]")'>
+                    @genre
                 </button>
             }
         </div>
 
-        <!-- Search Bar & Action Buttons -->
-        <div class="flex items-center gap-3 flex-1 lg:max-w-md">
-            <div class="relative flex-1">
-                <svg class="w-4 h-4 text-[#9E9587] absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text"
-                       @bind="searchQuery"
-                       @bind:event="oninput"
-                       @bind:after="ApplySearch"
-                       placeholder="Search books by title, author, or keyword..."
-                       class="w-full text-xs pl-9 pr-8 py-2.5 rounded-sm bg-[#181614] border border-[#2E2A25] text-[#EDE6D6] placeholder-[#9E9587] focus:border-[#C8963E] focus:outline-none transition-colors" />
-                @if (!string.IsNullOrWhiteSpace(searchQuery))
-                {
-                    <button type="button"
-                            @onclick="ClearSearch"
-                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9E9587] hover:text-[#EDE6D6]">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                }
-            </div>
+        <div class="flex items-center gap-3 flex-1 lg:max-w-lg">
+            <form @onsubmit="ApplySearch" class="relative flex-1 flex items-center gap-2">
+                <div class="relative flex-1">
+                    <svg class="w-4 h-4 text-[#9E9587] absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text"
+                           @bind="searchQuery"
+                           placeholder="Search any book, author, or subject across the web..."
+                           class="w-full text-xs pl-9 pr-8 py-2.5 rounded-sm bg-[#181614] border border-[#2E2A25] text-[#EDE6D6] placeholder-[#9E9587] focus:border-[#C8963E] focus:outline-none transition-colors" />
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <button type="button"
+                                @onclick="ClearSearch"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9E9587] hover:text-[#EDE6D6]">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    }
+                </div>
+                <button type="submit"
+                        class="px-3.5 py-2.5 text-xs font-mono uppercase tracking-wider bg-[#181614] hover:bg-[#201E1A] border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
+                    Search
+                </button>
+            </form>
 
-            <!-- Upload Book Button -->
             <button type="button"
-                    @onclick="TriggerInscribeTome"
+                    @onclick="TriggerUploadDrawer"
                     class="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider bg-[#C8963E] hover:bg-[#DDA84B] text-[#0F0E0D] rounded-sm transition-all shadow-sm whitespace-nowrap">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span>Upload Book</span>
+                <span>Upload PDF</span>
             </button>
         </div>
     </div>
 
-    <!-- Active Search or Category Notice -->
     @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedCategory != "All")
     {
         <div class="flex items-center justify-between mb-6 text-xs font-mono text-[#9E9587]">
             <span>
-                Showing results for
-                @if (selectedCategory != "All") { <span class="text-[#C8963E] font-semibold">@selectedCategory</span> }
-                @if (!string.IsNullOrWhiteSpace(searchQuery)) { <span> matching "<strong class="text-[#EDE6D6]">@searchQuery</strong>"</span> }
-                (@books.Count books found)
+                Showing @books.Count editions
+                @if (selectedCategory != "All") { <span>in <strong class="text-[#C8963E]">@selectedCategory</strong></span> }
+                @if (!string.IsNullOrWhiteSpace(searchQuery)) { <span>matching "<strong class="text-[#EDE6D6]">@searchQuery</strong>"</span> }
             </span>
             <button type="button"
                     @onclick="ResetFilters"
@@ -132,35 +127,26 @@
         </div>
     }
 
-    <!-- Books Alcove Grid -->
     @if (isLoading)
     {
         <div class="py-20 text-center">
             <div class="w-8 h-8 mx-auto mb-3 border-2 border-[#C8963E] border-t-transparent rounded-full animate-spin"></div>
             <p class="font-mono text-xs text-[#9E9587] uppercase tracking-widest">
-                Loading books from archive...
+                Gathering editions from Community Shelf, Project Gutenberg &amp; Open Library...
             </p>
         </div>
     }
     else if (books.Count == 0)
     {
         <div class="max-w-md mx-auto my-16 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center">
-            <div class="w-12 h-12 mx-auto mb-3 rounded-full border border-[#2E2A25] flex items-center justify-center text-[#9E9587] bg-[#0F0E0D]">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-            </div>
-            <h3 class="font-serif text-xl font-bold text-[#EDE6D6] mb-1">
-                No Books Found
-            </h3>
+            <h3 class="font-serif text-xl font-bold text-[#EDE6D6] mb-1">No Editions Found</h3>
             <p class="text-xs text-[#9E9587] mb-4">
-                No active books match the selected filter or search query.
+                No books matched your filter or query. Try another search term or upload a rare PDF copy.
             </p>
             <button type="button"
                     @onclick="ResetFilters"
                     class="px-4 py-2 text-xs font-mono uppercase bg-[#0F0E0D] border border-[#2E2A25] hover:border-[#8C6D3F] text-[#EDE6D6] rounded-sm transition-all">
-                View All Books
+                Show All Books
             </button>
         </div>
     }
@@ -172,7 +158,7 @@
                 <BookCard Book="book"
                           IsAuditor="@AuthState.IsAuditor"
                           OnRead="OpenReader"
-                          OnDownload="DownloadBook"
+                          OnDownload="b => DownloadBook(b, null)"
                           OnEdit="OpenEditModal"
                           OnSeal="PromptSeal" />
             }
@@ -180,11 +166,10 @@
     }
 </div>
 
-<!-- Modal Components -->
 <CodexReaderModal Book="selectedBookForReader"
                   IsOpen="isReaderOpen"
                   OnClose="() => isReaderOpen = false"
-                  OnDownload="DownloadBook"
+                  OnDownloadFormat="args => DownloadBook(args.Book, args.Format)"
                   OnRequestSignIn="() => isAuthModalOpen = true" />
 
 <UploadTomeDrawer IsOpen="isUploadDrawerOpen"
@@ -200,47 +185,23 @@
                OnClose="() => isEditModalOpen = false"
                OnSaved="HandleBookUpdated" />
 
-<!-- Delete Confirmation Modal -->
 @if (isSealPromptOpen && bookToSeal != null)
 {
     <div class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-in">
         <div class="w-full max-w-md bg-[#181614] border border-[#9E332D] rounded-sm p-6 space-y-4 candle-glow">
-            <div class="flex items-center gap-2 text-[#9E332D]">
-                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">
-                    Delete Book
-                </h3>
-            </div>
-            
+            <h3 class="font-serif text-xl font-bold text-[#EDE6D6]">Delete Book</h3>
             <p class="text-xs text-[#9E9587]">
-                Deleting <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> will remove it from the public catalog. You can restore it at any time from the Site Audit page.
+                Deleting <strong class="text-[#EDE6D6]">@bookToSeal.Title</strong> removes it from the public catalog. You can restore it anytime from Site Audit.
             </p>
-
             <div>
-                <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">
-                    Reason for deletion:
-                </label>
+                <label class="block text-xs font-mono uppercase text-[#9E9587] mb-1">Reason:</label>
                 <input type="text"
                        @bind="sealReason"
-                       placeholder="e.g. Content moderation review"
                        class="w-full text-xs p-2.5 rounded-sm bg-[#0F0E0D] border border-[#2E2A25] text-[#EDE6D6] focus:border-[#9E332D] focus:outline-none" />
             </div>
-
             <div class="flex items-center justify-end gap-3 pt-3">
-                <button type="button"
-                        @onclick="() => isSealPromptOpen = false"
-                        class="px-3 py-1.5 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">
-                    Cancel
-                </button>
-                <button type="button"
-                        @onclick="ConfirmSealBook"
-                        class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm transition-all shadow-md">
-                    Delete Book
-                </button>
+                <button type="button" @onclick="() => isSealPromptOpen = false" class="px-3 py-1.5 text-xs font-mono uppercase text-[#9E9587] hover:text-[#EDE6D6]">Cancel</button>
+                <button type="button" @onclick="ConfirmSealBook" class="px-4 py-1.5 text-xs font-semibold uppercase bg-[#9E332D] hover:bg-[#b03d36] text-[#EDE6D6] rounded-sm">Delete Book</button>
             </div>
         </div>
     </div>
@@ -248,12 +209,11 @@
 
 @code {
     private List<Book> books = new();
-    private (int TotalBooks, int ActiveCodices, int TotalDownloads, int TotalLogs) stats = (0, 0, 0, 0);
+    private (int TotalBooks, int CommunityPdfs, int TotalDownloads, int TotalLogs) stats = (0, 0, 0, 0);
     private string selectedCategory = "All";
     private string searchQuery = "";
     private bool isLoading = true;
 
-    // Modals state
     private bool isReaderOpen = false;
     private Book? selectedBookForReader;
 
@@ -273,20 +233,40 @@
         await LoadCatalogAsync();
     }
 
-    private void HandleAuthStateChange()
-    {
-        InvokeAsync(StateHasChanged);
-    }
+    private void HandleAuthStateChange() => InvokeAsync(StateHasChanged);
 
     private async Task LoadCatalogAsync()
     {
         isLoading = true;
         try
         {
-            // Map "General" display label to "Codex" underlying database value
-            var dbCategory = selectedCategory == "General" ? "Codex" : selectedCategory;
-            books = await ArchiveService.GetBooksAsync(dbCategory, searchQuery);
-            stats = await ArchiveService.GetArchiveStatsAsync();
+            var localTask = ArchiveService.GetBooksAsync(selectedCategory, searchQuery, 60);
+            var webTask = FederatedBooks.SearchAsync(searchQuery, selectedCategory);
+            var statsTask = ArchiveService.GetArchiveStatsAsync();
+
+            await Task.WhenAll(localTask, webTask, statsTask);
+
+            var localBooks = localTask.Result;
+            var webBooks = webTask.Result;
+            stats = statsTask.Result;
+
+            var indexedExternalIds = new HashSet<string>(
+                localBooks.Where(b => !string.IsNullOrWhiteSpace(b.ExternalId)).Select(b => b.ExternalId!),
+                StringComparer.OrdinalIgnoreCase);
+
+            var merged = new List<Book>(localBooks.Count + webBooks.Count);
+            merged.AddRange(localBooks);
+
+            foreach (var external in webBooks)
+            {
+                if (!string.IsNullOrWhiteSpace(external.ExternalId) && indexedExternalIds.Contains(external.ExternalId))
+                {
+                    continue;
+                }
+                merged.Add(external);
+            }
+
+            books = merged;
         }
         catch (Exception ex)
         {
@@ -304,10 +284,7 @@
         await LoadCatalogAsync();
     }
 
-    private async Task ApplySearch()
-    {
-        await LoadCatalogAsync();
-    }
+    private async Task ApplySearch() => await LoadCatalogAsync();
 
     private async Task ClearSearch()
     {
@@ -328,30 +305,57 @@
         isReaderOpen = true;
     }
 
-    private async Task DownloadBook(Book book)
+    private async Task DownloadBook(Book book, string? preferredFormat)
     {
         try
         {
-            if (!string.IsNullOrWhiteSpace(book.FileUrl) && 
-                (book.FileUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) || 
-                 book.FileUrl.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)))
+            var safeTitle = SanitizeFileName(book.Title);
+            string? targetUrl = null;
+            string targetFileName = $"{safeTitle}.pdf";
+
+            if (string.Equals(preferredFormat, "epub", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(book.EpubUrl))
             {
-                await JSRuntime.InvokeVoidAsync("MasyafArchive.downloadFromUrl", book.FileUrl, $"{SanitizeFileName(book.Title)}.pdf");
+                targetUrl = book.EpubUrl;
+                targetFileName = $"{safeTitle}.epub";
+            }
+            else if (string.Equals(preferredFormat, "pdf", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(book.PdfUrl))
+            {
+                targetUrl = book.PdfUrl;
+                targetFileName = $"{safeTitle}.pdf";
+            }
+            else if (!string.IsNullOrWhiteSpace(book.PdfUrl))
+            {
+                targetUrl = book.PdfUrl;
+                targetFileName = $"{safeTitle}.pdf";
+            }
+            else if (!string.IsNullOrWhiteSpace(book.EpubUrl))
+            {
+                targetUrl = book.EpubUrl;
+                targetFileName = $"{safeTitle}.epub";
+            }
+            else if (!string.IsNullOrWhiteSpace(book.FileUrl))
+            {
+                targetUrl = book.FileUrl;
+                var ext = book.FileUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? ".pdf"
+                        : book.FileUrl.EndsWith(".epub", StringComparison.OrdinalIgnoreCase) ? ".epub"
+                        : ".txt";
+                targetFileName = $"{safeTitle}{ext}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(targetUrl))
+            {
+                await JSRuntime.InvokeVoidAsync("EveryPageLibrary.downloadFile", targetUrl, targetFileName);
             }
             else
             {
-                var catDisplay = book.Category == "Codex" ? "General" : book.Category;
                 var manuscript = $@"================================================================================
-THE MASYAF ARCHIVE • DIGITAL MANUSCRIPT
-Open-Source Digital Library
+EVERYPAGE LIBRARY - OPEN DIGITAL EDITION
 ================================================================================
 
 TITLE:       {book.Title}
 AUTHOR:      {book.Author}
-CATEGORY:    {catDisplay}
-UPLOADED BY: {book.UploadedBy}
-CATALOG ID:  #{book.Id:D4}
-DATE:        {book.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC
+GENRE:       {book.GenreLabel}
+SOURCE:      {book.SourceBadge}
 
 --------------------------------------------------------------------------------
 DESCRIPTION:
@@ -359,19 +363,17 @@ DESCRIPTION:
 --------------------------------------------------------------------------------
 
 {book.ContentText}
-
-================================================================================
-THE MASYAF ARCHIVE — FREE TO READ AND DOWNLOAD WITHOUT AN ACCOUNT
-================================================================================";
-
-                var fileName = $"{SanitizeFileName(book.Title)}.txt";
-                await JSRuntime.InvokeVoidAsync("MasyafArchive.downloadTextFile", fileName, manuscript);
+";
+                await JSRuntime.InvokeVoidAsync("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
             }
 
-            // Increment in Supabase
-            await ArchiveService.IncrementDownloadCountAsync(book.Id);
-            book.DownloadCount += 1;
-            stats = (stats.TotalBooks, stats.ActiveCodices, stats.TotalDownloads + 1, stats.TotalLogs);
+            var actorName = AuthState.CurrentUser?.Username ?? "Guest reader";
+            var actorRole = AuthState.CurrentUser?.Role ?? "reader";
+            var persisted = await ArchiveService.RegisterDownloadAsync(book, actorName, actorRole);
+
+            book.Id = persisted.Id;
+            book.DownloadCount = persisted.DownloadCount;
+            stats = (stats.TotalBooks, stats.CommunityPdfs, stats.TotalDownloads + 1, stats.TotalLogs);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -380,7 +382,7 @@ THE MASYAF ARCHIVE — FREE TO READ AND DOWNLOAD WITHOUT AN ACCOUNT
         }
     }
 
-    private void TriggerInscribeTome()
+    private void TriggerUploadDrawer()
     {
         if (AuthState.IsAuthenticated)
         {
@@ -392,10 +394,7 @@ THE MASYAF ARCHIVE — FREE TO READ AND DOWNLOAD WITHOUT AN ACCOUNT
         }
     }
 
-    private async Task HandleTomeInscribed(Book newBook)
-    {
-        await LoadCatalogAsync();
-    }
+    private async Task HandleTomeInscribed(Book newBook) => await LoadCatalogAsync();
 
     private void HandleAuthenticated()
     {
@@ -436,14 +435,12 @@ THE MASYAF ARCHIVE — FREE TO READ AND DOWNLOAD WITHOUT AN ACCOUNT
         }
     }
 
-    private string SanitizeFileName(string name)
+    private static string SanitizeFileName(string name)
     {
         var invalid = System.IO.Path.GetInvalidFileNameChars();
-        return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c)).Replace(" ", "_");
+        var cleaned = string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c)).Replace(" ", "_");
+        return string.IsNullOrWhiteSpace(cleaned) ? "EveryPage_Book" : cleaned;
     }
 
-    public void Dispose()
-    {
-        AuthState.OnChange -= HandleAuthStateChange;
-    }
+    public void Dispose() => AuthState.OnChange -= HandleAuthStateChange;
 }

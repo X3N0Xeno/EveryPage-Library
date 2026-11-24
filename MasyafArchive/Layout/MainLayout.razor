@@ -1,4 +1,4 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @using MasyafArchive.Models
 @using MasyafArchive.Services
 @using MasyafArchive.Components
@@ -7,33 +7,27 @@
 @implements IDisposable
 
 <div class="min-h-screen bg-[#0F0E0D] text-[#EDE6D6] flex flex-col font-sans selection:bg-[#C8963E]/30 selection:text-[#EDE6D6]">
-    
-    <!-- Architectural Header -->
     <header class="sticky top-0 z-40 bg-[#0F0E0D]/95 backdrop-blur-md border-b border-[#2E2A25]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 sm:h-20">
-                
-                <!-- Left: Archive Crest & Brand -->
                 <div class="flex items-center gap-4">
                     <a href="/" class="flex items-center gap-3 group">
                         <div class="w-10 h-10 rounded-sm bg-[#181614] border border-[#2E2A25] group-hover:border-[#C8963E] flex items-center justify-center text-[#C8963E] transition-all duration-300">
-                            <!-- Masyaf Crest Mark -->
-                            <svg class="w-5 h-5" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <polygon points="50,15 85,80 50,65 15,80" />
-                                <circle cx="50" cy="50" r="10" />
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-serif text-lg sm:text-xl font-bold tracking-[0.18em] uppercase text-[#EDE6D6] group-hover:text-[#DDA84B] transition-colors block leading-tight">
-                                The Masyaf Archive
+                            <span class="font-serif text-lg sm:text-xl font-bold tracking-[0.16em] uppercase text-[#EDE6D6] group-hover:text-[#DDA84B] transition-colors block leading-tight">
+                                EveryPage Library
                             </span>
                             <span class="font-mono text-[10px] tracking-widest uppercase text-[#9E9587] block">
-                                Open Digital Library
+                                Open Global Reading Hall
                             </span>
                         </div>
                     </a>
 
-                    <!-- Nav Links -->
                     <nav class="hidden md:flex items-center gap-1 ml-6 border-l border-[#2E2A25] pl-6 font-mono text-xs uppercase tracking-wider">
                         <NavLink href="" Match="NavLinkMatch.All"
                                  class="px-3 py-2 rounded-sm text-[#9E9587] hover:text-[#EDE6D6] hover:bg-[#181614] transition-all"
@@ -60,12 +54,9 @@
                     </nav>
                 </div>
 
-                <!-- Right: User Status & Actions -->
                 <div class="flex items-center gap-3">
-                    
                     @if (AuthState.IsAuthenticated)
                     {
-                        <!-- Authenticated User Pill -->
                         <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#181614] border border-[#2E2A25]">
                             <div class="w-2 h-2 rounded-full @(AuthState.IsAuditor ? "bg-[#9E332D]" : "bg-[#C8963E]") animate-pulse"></div>
                             <span class="text-xs text-[#9E9587]">Signed in as</span>
@@ -75,7 +66,6 @@
                             </span>
                         </div>
 
-                        <!-- Sign Out Button -->
                         <button type="button"
                                 @onclick="SignOut"
                                 title="Sign out of your account"
@@ -90,7 +80,6 @@
                     }
                     else
                     {
-                        <!-- Unauthenticated Sign In Button -->
                         <button type="button"
                                 @onclick="() => isAuthModalOpen = true"
                                 class="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider text-[#EDE6D6] hover:text-[#C8963E] bg-[#181614] hover:bg-[#201E1A] border border-[#2E2A25] hover:border-[#8C6D3F] rounded-sm transition-all">
@@ -104,7 +93,6 @@
                 </div>
             </div>
 
-            <!-- Mobile Sub-navigation -->
             <div class="flex md:hidden items-center justify-around py-2 border-t border-[#2E2A25] text-xs font-mono uppercase">
                 <NavLink href="" Match="NavLinkMatch.All" class="py-1 px-3 text-[#9E9587] hover:text-[#EDE6D6]">
                     Browse Books
@@ -120,33 +108,28 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
     <main class="flex-1">
         @Body
     </main>
 
-    <!-- Architectural Footer -->
     <footer class="border-t border-[#2E2A25] bg-[#0F0E0D] py-10 mt-16 text-center select-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Sacred Geometry Divider -->
             <div class="sacred-divider max-w-xl mx-auto my-6">
                 <div class="sacred-divider-diamond"></div>
             </div>
 
-            <!-- Footer Copy -->
             <p class="font-serif italic text-lg sm:text-xl text-[#EDE6D6] tracking-wide mb-3">
-                "Open-Source Digital Library — Free to read online and download without an account."
+                "Everything Humanity Has Written, Open to Everyone."
             </p>
 
             <div class="text-xs font-mono text-[#9E9587]/70 space-y-1">
-                <p>The Masyaf Archive • Built with Blazor WebAssembly and Supabase</p>
-                <p>Preserved in memory of Altaïr Ibn-La'Ahad (1165–1257) • PostgREST C# Client</p>
+                <p>EveryPage Library &bull; Community PDFs, Project Gutenberg &amp; Open Library in One Place</p>
+                <p>Free to browse, read online, and download without an account</p>
             </div>
         </div>
     </footer>
 </div>
 
-<!-- Global Auth Modal -->
 <AuthModal IsOpen="isAuthModalOpen"
            OnClose="() => isAuthModalOpen = false"
            OnAuthenticated="HandleAuthenticated" />
@@ -160,10 +143,7 @@
         await AuthState.InitializeAsync();
     }
 
-    private void HandleAuthStateChanged()
-    {
-        InvokeAsync(StateHasChanged);
-    }
+    private void HandleAuthStateChanged() => InvokeAsync(StateHasChanged);
 
     private async Task SignOut()
     {
@@ -177,8 +157,5 @@
         StateHasChanged();
     }
 
-    public void Dispose()
-    {
-        AuthState.OnChange -= HandleAuthStateChanged;
-    }
+    public void Dispose() => AuthState.OnChange -= HandleAuthStateChanged;
 }
