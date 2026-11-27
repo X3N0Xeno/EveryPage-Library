@@ -1,8 +1,8 @@
-# Everyday Library
+# EveryPage Library
 
 **Everything Humanity Has Written, Open to Everyone.**
 
-Everyday Library is a federated digital library built with **Blazor WebAssembly (.NET 8)**, **Tailwind CSS**, and **Supabase**. It unifies community-contributed `.pdf` editions with open-access books aggregated in real time from **Project Gutenberg (Gutendex)** and **Open Library / Internet Archive**.
+EveryPage Library is a federated digital library built with **Blazor WebAssembly (.NET 8)**, **Tailwind CSS**, and **Supabase**. It unifies community-contributed `.pdf` editions with open-access books aggregated in real time from **Project Gutenberg (Gutendex)** and **Open Library / Internet Archive**.
 
 ## Key Features
 - **Federated Web Catalog:** Searches community uploads alongside Project Gutenberg and Open Library across Philosophy, History, Science, Fiction, Literature, Technology, and Biography.

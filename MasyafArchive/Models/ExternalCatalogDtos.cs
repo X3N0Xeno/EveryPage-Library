@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace EverydayLibrary.Models;
+namespace EveryPageLibrary.Models;
 
 public class GutendexResponse
 {

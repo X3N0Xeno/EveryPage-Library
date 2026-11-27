@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EverydayLibrary.Models;
+namespace EveryPageLibrary.Models;
 
 public sealed record BookFacetProfile(
     string Form,

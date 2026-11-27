@@ -1,40 +1,48 @@
-@using EverydayLibrary.Models
-@using EverydayLibrary.Services
+@using EveryPageLibrary.Models
+@using EveryPageLibrary.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
 @if (IsOpen && Book != null)
 {
-    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/65 flex items-center justify-center p-2 sm:p-4 animate-modal-in"
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-[#1C1917]/70 flex items-center justify-center p-2 sm:p-4 animate-modal-in"
          tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-label="@Book.Title"
          @onkeydown="HandleKeyDown">
 
-        <div class="relative w-full max-w-6xl h-[92vh] max-h-[920px] flex flex-col rounded-sm border-2 border-[#1C1917] shadow-[8px_8px_0px_#1C1917] overflow-hidden @(IsParchmentMode ? "bg-[#F2EAD8]" : "bg-[#FFFDF7]") text-[#1C1917]">
-            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b-2 border-[#1C1917] bg-[#FAF6EC] z-10 select-none">
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="px-2 py-0.5 text-xs font-mono font-bold uppercase rounded-sm border-2 border-[#1C1917] bg-[#F4C430]">
-                        @Book.GenreLabel
-                    </span>
-                    <span class="hidden sm:inline-block px-2 py-0.5 text-xs font-mono font-bold uppercase rounded-sm border-2 border-[#1C1917] bg-[#FFFDF7]">
-                        @Book.SourceBadge
-                    </span>
-                    <div class="truncate">
-                        <h2 class="font-comic text-lg sm:text-xl font-bold truncate text-[#1C1917]">@Book.Title</h2>
-                        <span class="text-xs font-mono text-[#57534E]">By @Book.Author</span>
+        <div class="relative w-full max-w-6xl h-[92vh] max-h-[920px] flex flex-col rounded-sm border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] overflow-hidden @(IsParchmentMode ? "bg-[#F2EAD8]" : "bg-[#FFFDF7]") text-[#1C1917]">
+
+            <!-- Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b-2 border-[#1C1917] bg-[#FAF6EC] z-10 select-none">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex flex-col items-start gap-1 shrink-0">
+                        <span class="stamp bg-[#F4C430] text-[#1C1917]">@Book.GenreLabel</span>
+                        <span class="hidden sm:inline-block stamp bg-[#FFFDF7] text-[#1C1917]">@Book.SourceBadge</span>
+                    </div>
+                    <div class="min-w-0 pl-3 border-l-2 border-[#1C1917]/20">
+                        <h2 class="font-serif text-lg sm:text-xl font-bold leading-tight truncate text-[#1C1917]">@Book.Title</h2>
+                        <span class="block text-xs font-mono text-[#57534E] truncate">By @Book.Author</span>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap">
                     @if (!HasEmbeddableDocument)
                     {
-                        <div class="flex items-center rounded-sm border-2 border-[#1C1917] bg-[#FFFDF7] p-0.5 text-xs font-mono font-bold">
-                            <button type="button" @onclick='() => FontSize = "S"' class='px-2 py-0.5 rounded-sm @(FontSize == "S" ? "bg-[#F4C430]" : "")'>S</button>
-                            <button type="button" @onclick='() => FontSize = "M"' class='px-2 py-0.5 rounded-sm @(FontSize == "M" ? "bg-[#F4C430]" : "")'>M</button>
-                            <button type="button" @onclick='() => FontSize = "L"' class='px-2 py-0.5 rounded-sm @(FontSize == "L" ? "bg-[#F4C430]" : "")'>L</button>
+                        <div role="group" aria-label="Text size"
+                             class="flex items-center rounded-sm border-2 border-[#1C1917] bg-[#FFFDF7] shadow-[2px_2px_0px_#1C1917] overflow-hidden text-xs font-mono font-bold">
+                            <button type="button" @onclick='() => FontSize = "S"' class='seg-btn @(FontSize == "S" ? "is-active" : "")'>S</button>
+                            <button type="button" @onclick='() => FontSize = "M"' class='seg-btn @(FontSize == "M" ? "is-active" : "")'>M</button>
+                            <button type="button" @onclick='() => FontSize = "L"' class='seg-btn @(FontSize == "L" ? "is-active" : "")'>L</button>
                         </div>
 
                         <button type="button"
                                 @onclick="() => IsParchmentMode = !IsParchmentMode"
-                                class="ink-btn px-2.5 py-1 text-xs font-mono font-bold rounded-sm bg-[#FFFDF7] text-[#1C1917]">
+                                class="ink-btn inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold rounded-sm bg-[#FFFDF7] text-[#1C1917]">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M6 2h9l5 5v15H6z"></path>
+                                <path d="M15 2v5h5"></path>
+                            </svg>
                             @(IsParchmentMode ? "White Paper" : "Manila Tint")
                         </button>
                     }
@@ -42,7 +50,12 @@
                     @if (!string.IsNullOrWhiteSpace(EffectivePdfUrl))
                     {
                         <button type="button" @onclick='() => TriggerFormatDownload("pdf")'
-                                class="ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">
+                                class="ink-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
                             Download PDF
                         </button>
                     }
@@ -50,7 +63,12 @@
                     @if (!string.IsNullOrWhiteSpace(Book.EpubUrl))
                     {
                         <button type="button" @onclick='() => TriggerFormatDownload("epub")'
-                                class="ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                                class="ink-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
                             Download EPUB
                         </button>
                     }
@@ -58,20 +76,29 @@
                     @if (string.IsNullOrWhiteSpace(EffectivePdfUrl) && string.IsNullOrWhiteSpace(Book.EpubUrl))
                     {
                         <button type="button" @onclick='() => TriggerFormatDownload("txt")'
-                                class="ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">
+                                class="ink-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
                             Download Book
                         </button>
                     }
 
-                    <button type="button" @onclick="Close"
-                            class="ink-btn px-2.5 py-1 text-sm font-mono font-bold bg-[#FFFDF7] hover:bg-[#D93829] hover:text-[#FFFDF7] rounded-sm">
-                        &#x2715;
+                    <button type="button" @onclick="Close" aria-label="Close reader"
+                            class="ink-btn inline-flex items-center justify-center w-8 h-8 bg-[#FFFDF7] hover:bg-[#D93829] hover:text-[#FFFDF7] text-[#1C1917] rounded-sm">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                        </svg>
                     </button>
                 </div>
             </div>
 
             <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-[#1C1917]">
-                <div class="lg:col-span-2 overflow-y-auto @(HasEmbeddableDocument ? "p-0 bg-[#F2EAD8]" : "p-6 sm:p-10")">
+                <!-- Reading pane -->
+                <div class="lg:col-span-2 overflow-y-auto @(HasEmbeddableDocument ? "p-0 bg-[#F2EAD8]" : "px-6 py-8 sm:px-12 sm:py-12")">
                     @if (!string.IsNullOrWhiteSpace(ArchiveEmbedUrl))
                     {
                         <iframe src="@ArchiveEmbedUrl" title="@Book.Title" allowfullscreen class="w-full h-full min-h-[560px] border-0"></iframe>
@@ -82,24 +109,27 @@
                     }
                     else
                     {
-                        <div class="max-w-2xl mx-auto mb-8 text-center">
+                        <div class="max-w-2xl mx-auto mb-10 text-center">
                             @if (!string.IsNullOrWhiteSpace(Book.CoverUrl))
                             {
-                                <img src="@Book.CoverUrl" alt="@Book.Title cover" class="w-28 h-40 object-cover mx-auto mb-5 rounded-sm border-2 border-[#1C1917] shadow-[3px_3px_0px_#1C1917]" />
+                                <img src="@Book.CoverUrl" alt="@Book.Title cover" class="w-28 h-40 object-cover mx-auto mb-6 rounded-sm border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917]" />
                             }
+                            <span class="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#57534E]">@Book.SourceBadge Edition</span>
+                            <h1 class="font-serif text-3xl sm:text-4xl font-bold mt-2 mb-2 leading-tight text-[#1C1917]">@Book.Title</h1>
+                            <p class="font-comic text-lg text-[#D93829]">By @Book.Author</p>
                             <div class="sacred-divider"><div class="sacred-divider-diamond"></div></div>
-                            <h1 class="font-comic text-3xl sm:text-4xl font-bold mb-2 text-[#1C1917]">@Book.Title</h1>
-                            <p class="font-serif italic text-lg mb-4 text-[#D93829]">By @Book.Author</p>
                             @if (!string.IsNullOrWhiteSpace(Book.Synopsis))
                             {
-                                <div class="p-4 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] text-sm text-left mb-6 shadow-[3px_3px_0px_#1C1917]">
-                                    <strong class="font-mono font-bold uppercase text-xs block mb-1 text-[#D93829]">Library Card Notes</strong>
-                                    @Book.Synopsis
+                                <div class="text-left bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[3px_3px_0px_#1C1917] rounded-sm overflow-hidden">
+                                    <div class="px-4 py-1.5 border-b-2 border-[#D93829] bg-[#FAF6EC] font-mono text-[11px] font-bold uppercase tracking-wider text-[#D93829]">
+                                        Library Card Notes
+                                    </div>
+                                    <p class="px-4 py-3 font-serif text-[15px] leading-relaxed text-[#1C1917]">@Book.Synopsis</p>
                                 </div>
                             }
                         </div>
 
-                        <div class="max-w-2xl mx-auto @GetFontSizeClass() leading-relaxed space-y-5 font-serif text-[#1C1917]">
+                        <div class="reader-prose mx-auto @GetFontSizeClass() space-y-5 text-[#1C1917]">
                             @if (isLoadingFullText)
                             {
                                 <div class="p-6 rounded-sm border-2 border-dashed border-[#1C1917]/40 bg-[#FAF6EC] text-center font-mono text-xs text-[#57534E]">
@@ -111,14 +141,18 @@
                                 var paragraphs = (Book.ContentText ?? string.Empty).Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
                                 @if (paragraphs.Length == 0)
                                 {
-                                    <div class="p-6 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] text-center space-y-3 font-hand">
-                                        <p class="text-lg font-bold">Hosted by @Book.SourceBadge</p>
+                                    <div class="p-6 rounded-sm border-2 border-[#1C1917] bg-[#FAF6EC] shadow-[3px_3px_0px_#1C1917] text-center space-y-3 font-hand">
+                                        <p class="font-comic text-xl font-bold">Hosted by @Book.SourceBadge</p>
                                         <p class="text-base text-[#57534E]">Click any download button in the top bar or open the source edition directly.</p>
                                         @if (!string.IsNullOrWhiteSpace(Book.FileUrl))
                                         {
                                             <a href="@Book.FileUrl" target="_blank" rel="noopener"
-                                               class="ink-btn inline-block px-4 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
-                                                Open on @Book.SourceBadge &#x2197;
+                                               class="ink-btn inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                                                Open on @Book.SourceBadge
+                                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <line x1="7" y1="17" x2="17" y2="7"></line>
+                                                    <polyline points="8 7 17 7 17 16"></polyline>
+                                                </svg>
                                             </a>
                                         }
                                     </div>
@@ -135,38 +169,47 @@
                     }
                 </div>
 
-                <!-- Margin Notes Column -->
+                <!-- Margin Notes column -->
                 <div class="lg:col-span-1 flex flex-col h-full bg-[#FAF6EC] overflow-hidden">
-                    <div class="p-4 border-b-2 border-[#1C1917] bg-[#F2EAD8] flex items-center justify-between">
-                        <h3 class="font-comic text-lg font-bold uppercase text-[#1C1917]">Margin Notes</h3>
-                        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-sm border-2 border-[#1C1917] bg-[#F4C430]">@Comments.Count</span>
+                    <div class="px-4 py-3 border-b-2 border-[#1C1917] bg-[#F2EAD8] flex items-center justify-between">
+                        <h3 class="font-comic text-lg font-bold text-[#1C1917]">Margin Notes</h3>
+                        <span class="stamp bg-[#F4C430] text-[#1C1917]">@Comments.Count</span>
                     </div>
 
                     <div class="flex-1 overflow-y-auto p-4 space-y-3">
                         @if (isLoadingComments)
                         {
-                            <div class="py-8 text-center text-xs font-mono text-[#57534E]">Reading margin notes...</div>
+                            <div class="py-8 text-center text-xs font-mono uppercase tracking-wider text-[#57534E]">Reading margin notes&hellip;</div>
                         }
                         else if (Comments.Count == 0)
                         {
-                            <div class="py-10 text-center text-sm text-[#57534E]">No margin notes yet. Jot down your thoughts below!</div>
+                            <div class="speech-bubble mt-4 mb-6 mx-1 px-4 py-5 text-center text-base text-[#57534E]">
+                                No margin notes yet. Jot down your thoughts below!
+                            </div>
                         }
                         else
                         {
                             @foreach (var comment in Comments)
                             {
-                                <div class="p-3 rounded-sm border-2 border-[#1C1917] bg-[#FFFDF7] shadow-[2px_2px_0px_#1C1917] text-sm">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="font-comic font-bold text-[#D93829]">@comment.AuthorName</span>
-                                        <div class="flex items-center gap-2">
+                                <div class="relative pl-5 pr-3 py-3 rounded-sm border-2 border-[#1C1917] bg-[#FFFDF7] shadow-[2px_2px_0px_#1C1917] text-sm overflow-hidden">
+                                    <span class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#F4C430] border-r-2 border-[#1C1917]" aria-hidden="true"></span>
+                                    <div class="flex items-center justify-between gap-2 mb-1">
+                                        <span class="font-comic font-bold text-[#D93829] truncate">@comment.AuthorName</span>
+                                        <div class="flex items-center gap-2 shrink-0">
                                             <span class="text-[11px] font-mono text-[#57534E]">@comment.CreatedAt.ToUniversalTime().ToString("MMM dd")</span>
                                             @if (CanDeleteComment(comment))
                                             {
-                                                <button type="button" @onclick="() => SoftDeleteComment(comment.Id)" class="text-[#D93829] font-bold text-xs">&#x2715;</button>
+                                                <button type="button" @onclick="() => SoftDeleteComment(comment.Id)" aria-label="Delete note"
+                                                        class="w-5 h-5 inline-flex items-center justify-center rounded-sm text-[#D93829] hover:bg-[#D93829] hover:text-[#FFFDF7]">
+                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                    </svg>
+                                                </button>
                                             }
                                         </div>
                                     </div>
-                                    <p class="leading-snug whitespace-pre-wrap">@comment.Body</p>
+                                    <p class="leading-snug whitespace-pre-wrap text-[15px]">@comment.Body</p>
                                 </div>
                             }
                         }
@@ -176,14 +219,14 @@
                         @if (AuthState.IsAuthenticated)
                         {
                             <form @onsubmit="SubmitComment" class="space-y-2">
-                                <label class="block text-xs font-mono font-bold uppercase text-[#57534E]">
+                                <label class="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
                                     Note by <span class="text-[#D93829]">@AuthState.CurrentUser?.Username</span>
                                 </label>
                                 <textarea @bind="newCommentText" rows="2" placeholder="Write a margin note..." required disabled="@isSubmittingComment"
-                                          class="w-full text-sm p-2.5 rounded-sm border-2 border-[#1C1917] bg-[#FFFDF7] text-[#1C1917] focus:outline-none"></textarea>
+                                          class="ink-field w-full text-sm p-2.5 rounded-sm resize-none"></textarea>
                                 @if (!string.IsNullOrWhiteSpace(commentErrorMessage))
                                 {
-                                    <p class="text-xs font-mono text-[#D93829]">@commentErrorMessage</p>
+                                    <p class="text-xs font-mono font-bold text-[#D93829]">@commentErrorMessage</p>
                                 }
                                 <div class="flex justify-end">
                                     <button type="submit" disabled="@(isSubmittingComment || string.IsNullOrWhiteSpace(newCommentText))"
@@ -318,4 +361,3 @@
     private async Task Close() => await OnClose.InvokeAsync();
     private async Task HandleKeyDown(KeyboardEventArgs e) { if (e.Key == "Escape") await Close(); }
 }
-

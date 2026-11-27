@@ -3,7 +3,7 @@ using System;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
-namespace EverydayLibrary.Models;
+namespace EveryPageLibrary.Models;
 
 /// <summary>
 /// A single record in the public library catalog (public.books).

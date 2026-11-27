@@ -1,76 +1,255 @@
-/* Everyday Library — Peanuts / Snoopy Handwritten Comic & Paper Styles */
+/* =========================================================
+   EveryPage Library — Refined Newsprint Neo-Brutalism
+   Pen-and-ink comic-strip styling. Pairs with the Tailwind
+   CDN config in index.html.
+   ========================================================= */
 
 :root {
-    --paper-bg: #FAF6EC;
-    --card-paper: #FFFDF7;
-    --note-paper: #F2EAD8;
-    --ink: #1C1917;
-    --pencil: #57534E;
+    --paper-bg: #FAF6EC;      /* warm newsprint */
+    --card-paper: #FFFDF7;    /* bristol board */
+    --note-paper: #F2EAD8;    /* aged panel */
+    --ink: #1C1917;           /* india ink */
+    --pencil: #57534E;        /* charcoal pencil */
+    --accent-red: #D93829;
+    --accent-yellow: #F4C430;
+    --accent-blue: #6BA4B8;
+    --accent-sage: #7C9A7E;
+
+    /* legacy aliases (kept so older references keep working) */
     --doghouse-red: #D93829;
     --woodstock-yellow: #F4C430;
+
+    --shadow-sm: 2px 2px 0 var(--ink);
+    --shadow-md: 4px 4px 0 var(--ink);
+    --shadow-lg: 6px 6px 0 var(--ink);
+    --ease-press: cubic-bezier(.2, .8, .2, 1);
 }
 
 body {
-    background-color: #FAF6EC;
-    color: #1C1917;
+    background-color: var(--paper-bg);
+    color: var(--ink);
     font-family: 'Patrick Hand', cursive, sans-serif;
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle lined notebook / newsprint grain */
-.paper-sheet {
-    background-color: #FAF6EC;
-    background-image:
-        radial-gradient(rgba(28, 25, 23, 0.04) 1px, transparent 0),
-        linear-gradient(to bottom, transparent 31px, rgba(107, 164, 184, 0.12) 32px);
-    background-size: 20px 20px, 100% 32px;
+::selection {
+    background: rgba(244, 196, 48, .55);
+    color: var(--ink);
 }
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* ---------- Paper & print textures ---------- */
+
+/* Faint newsprint grain on the page canvas */
+.paper-sheet {
+    background-color: var(--paper-bg);
+    background-image:
+        radial-gradient(rgba(28, 25, 23, .045) 1px, transparent 1.2px),
+        radial-gradient(rgba(28, 25, 23, .03) 1px, transparent 1.2px);
+    background-size: 22px 22px, 22px 22px;
+    background-position: 0 0, 11px 11px;
+}
+
+/* Ben-Day halftone dots (illustration panels, gutters) */
+.halftone {
+    background-image: radial-gradient(rgba(28, 25, 23, .16) 1.1px, transparent 1.4px);
+    background-size: 7px 7px;
+}
+
+/* Soft halftone that fades in toward one corner (hero backdrop) */
+.halftone-soft {
+    background-image: radial-gradient(rgba(28, 25, 23, .08) 1.1px, transparent 1.4px);
+    background-size: 9px 9px;
+    -webkit-mask-image: linear-gradient(120deg, transparent 40%, #000 100%);
+    mask-image: linear-gradient(120deg, transparent 40%, #000 100%);
+}
+
+/* ---------- Zigzag sweater-stripe accents ---------- */
+
+/* Full-width band: ink zigzag on yellow, ruled top and bottom */
+.zigzag-band {
+    height: 16px;
+    background-color: var(--accent-yellow);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' viewBox='0 0 24 16'%3E%3Cpath d='M-6 5 L0 11 L6 5 L12 11 L18 5 L24 11 L30 5' fill='none' stroke='%231C1917' stroke-width='3'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: left center;
+    background-size: 24px 16px;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+}
+
+.zigzag-band-sm {
+    height: 10px;
+    background-size: 15px 10px;
+    border-width: 1.5px 0;
+}
+
+/* Thin zigzag rule (transparent background) for headings */
+.zigzag-rule {
+    height: 12px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='12' viewBox='0 0 18 12'%3E%3Cpath d='M-4.5 3.5 L0 8.5 L4.5 3.5 L9 8.5 L13.5 3.5 L18 8.5 L22.5 3.5' fill='none' stroke='%23D93829' stroke-width='2.5'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: left center;
+    background-size: 18px 12px;
+}
+
+/* ---------- Scrollbars ---------- */
 
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #F2EAD8;
+    background: var(--note-paper);
+    border-left: 2px solid var(--ink);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #1C1917;
+    background: var(--ink);
+    border: 2px solid var(--note-paper);
     border-radius: 2px;
 }
 
-/* Comic-panel India-ink border & offset shadow */
+/* ---------- Panels ---------- */
+
 .comic-panel {
-    background-color: #FFFDF7;
-    border: 2px solid #1C1917;
-    box-shadow: 4px 4px 0px #1C1917;
-    transition: transform 0.16s ease, box-shadow 0.16s ease;
+    background-color: var(--card-paper);
+    border: 2px solid var(--ink);
+    box-shadow: var(--shadow-md);
+    transition: transform .16s var(--ease-press), box-shadow .16s var(--ease-press);
 }
 
 .comic-panel:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #1C1917;
+    box-shadow: var(--shadow-lg);
 }
 
+/* ---------- Buttons ---------- */
+
 .ink-btn {
-    border: 2px solid #1C1917;
-    box-shadow: 2px 2px 0px #1C1917;
-    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+    border: 2px solid var(--ink);
+    box-shadow: var(--shadow-sm);
+    transition: transform .12s var(--ease-press), box-shadow .12s var(--ease-press), background-color .12s ease, color .12s ease;
 }
 
 .ink-btn:hover:not(:disabled) {
-    transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0px #1C1917;
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-md);
 }
 
 .ink-btn:active:not(:disabled) {
-    transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px #1C1917;
+    transform: translate(2px, 2px);
+    box-shadow: none;
 }
 
-/* Hand-inked divider */
+.ink-btn:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+/* Segmented control (reader S / M / L) */
+.seg-btn {
+    padding: .3rem .65rem;
+    line-height: 1;
+    color: var(--ink);
+    background: transparent;
+    transition: background-color .12s ease;
+}
+
+.seg-btn + .seg-btn {
+    border-left: 2px solid var(--ink);
+}
+
+.seg-btn:hover {
+    background: rgba(244, 196, 48, .35);
+}
+
+.seg-btn.is-active {
+    background: var(--accent-yellow);
+}
+
+/* ---------- Form fields ---------- */
+
+.ink-field {
+    background-color: var(--card-paper);
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    color: var(--ink);
+    transition: box-shadow .12s ease, background-color .12s ease;
+}
+
+.ink-field::placeholder {
+    color: rgba(87, 83, 78, .75);
+}
+
+.ink-field:focus {
+    outline: none;
+    background-color: #FFFFFF;
+    box-shadow: 3px 3px 0 var(--ink);
+}
+
+.ink-field:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.ink-select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 L6 6.5 L11 1.5' fill='none' stroke='%231C1917' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .65rem center;
+    background-size: 12px 8px;
+    padding-right: 2rem;
+    cursor: pointer;
+}
+
+/* ---------- Stamps / badges ---------- */
+
+.stamp {
+    display: inline-block;
+    max-width: 100%;
+    padding: .15rem .5rem;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+}
+
+.tag-chip {
+    display: inline-block;
+    padding: .1rem .4rem;
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    line-height: 1.3;
+    border: 1.5px solid rgba(28, 25, 23, .45);
+    border-radius: 2px;
+}
+
+/* ---------- Dividers ---------- */
+
+/* Strip gutter between panels */
+.panel-gutter {
+    height: 14px;
+    background-color: var(--note-paper);
+    background-image: radial-gradient(rgba(28, 25, 23, .18) 1px, transparent 1.3px);
+    background-size: 6px 6px;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+}
+
 .sacred-divider {
     display: flex;
     align-items: center;
@@ -83,32 +262,81 @@ body {
 .sacred-divider::after {
     content: '';
     flex: 1;
-    border-bottom: 2px dashed #1C1917;
-    opacity: 0.35;
+    border-bottom: 2px dashed var(--ink);
+    opacity: .35;
 }
 
 .sacred-divider-diamond {
     width: 10px;
     height: 10px;
-    background-color: #D93829;
-    border: 2px solid #1C1917;
+    background-color: var(--accent-red);
+    border: 2px solid var(--ink);
     transform: rotate(45deg);
-    margin: 0 0.75rem;
+    margin: 0 .75rem;
     flex-shrink: 0;
 }
 
-/* Reader modes */
+/* ---------- Speech bubble ---------- */
+
+.speech-bubble {
+    position: relative;
+    background: var(--card-paper);
+    border: 2px solid var(--ink);
+    border-radius: 18px;
+    box-shadow: var(--shadow-md);
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    left: 34px;
+    bottom: -17px;
+    border-style: solid;
+    border-width: 17px 15px 0 0;
+    border-color: var(--ink) transparent transparent transparent;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    left: 36.5px;
+    bottom: -10px;
+    border-style: solid;
+    border-width: 12px 10px 0 0;
+    border-color: var(--card-paper) transparent transparent transparent;
+}
+
+/* ---------- Reader ---------- */
+
 .reader-parchment-mode {
-    background-color: #FAF6EC !important;
-    color: #1C1917 !important;
+    background-color: var(--paper-bg) !important;
+    color: var(--ink) !important;
 }
 
 .reader-stone-mode {
-    background-color: #FFFDF7 !important;
-    color: #1C1917 !important;
+    background-color: var(--card-paper) !important;
+    color: var(--ink) !important;
 }
 
-/* YouTube-style paper skeleton shimmer */
+.reader-prose {
+    font-family: 'Lora', Georgia, serif;
+    line-height: 1.8;
+    max-width: 66ch;
+    text-wrap: pretty;
+}
+
+.reader-prose > p:first-of-type::first-letter {
+    float: left;
+    font-family: 'Architects Daughter', cursive;
+    font-weight: 700;
+    font-size: 3.3em;
+    line-height: .85;
+    padding: .06em .12em 0 0;
+    color: var(--accent-red);
+}
+
+/* ---------- Skeleton shimmer ---------- */
+
 @keyframes paperShimmer {
     0% { background-position: -400px 0; }
     100% { background-position: 400px 0; }
@@ -120,11 +348,78 @@ body {
     animation: paperShimmer 1.3s infinite linear;
 }
 
+/* ---------- Motion ---------- */
+
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.98); }
+    from { opacity: 0; transform: scale(.98); }
     to { opacity: 1; transform: scale(1); }
 }
 
 .animate-modal-in {
-    animation: fadeIn 0.18s ease-out forwards;
+    animation: fadeIn .18s ease-out forwards;
+}
+
+@keyframes drawerIn {
+    from { opacity: 0; transform: translateX(28px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-drawer-in {
+    animation: drawerIn .22s var(--ease-press) both;
+}
+
+@keyframes floatPage {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-7px) rotate(3deg); }
+}
+
+.float-page {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: floatPage 1.4s ease-in-out infinite;
+}
+
+/* ---------- Layout helpers (MainLayout masthead / nav) ---------- */
+
+.masthead-rule {
+    height: 6px;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+}
+
+.nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .85rem;
+    font-family: 'Courier Prime', monospace;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ink);
+    background: var(--card-paper);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--shadow-sm);
+    transition: transform .12s var(--ease-press), box-shadow .12s var(--ease-press), background-color .12s ease;
+}
+
+.nav-pill:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-md);
+}
+
+.nav-pill.active,
+.nav-pill[aria-current="page"] {
+    background: var(--ink);
+    color: var(--accent-yellow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
 }

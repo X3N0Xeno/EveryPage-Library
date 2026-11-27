@@ -1,83 +1,119 @@
 @page "/audit-sanctum"
-@using EverydayLibrary.Models
-@using EverydayLibrary.Services
+@using EveryPageLibrary.Models
+@using EveryPageLibrary.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
 @implements IDisposable
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-[#1C1917]">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-[#1C1917]">
     @if (!AuthState.IsAuthenticated || !AuthState.IsAuditor)
     {
-        <div class="max-w-md mx-auto my-16 p-8 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm text-center">
-            <h2 class="font-comic text-3xl font-bold mb-2">Librarian Desk Only</h2>
-            <p class="text-base text-[#57534E] mb-6">Only accounts with the <strong>auditor</strong> role can view the site log and moderate cards.</p>
-            <button type="button" @onclick="SignInAsAltair"
-                    class="ink-btn w-full py-2.5 px-4 text-sm font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm mb-4">
-                Demo: Sign in as Librarian (Altair)
-            </button>
-            <a href="/" class="block text-xs font-mono font-bold underline">Back to Library</a>
+        <div class="max-w-md mx-auto my-16 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm overflow-hidden text-center">
+            <div class="halftone px-8 pt-8 pb-6">
+                <svg class="w-14 h-14 mx-auto mb-4" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+                    <rect x="10" y="24" width="36" height="26" rx="2" fill="#F4C430" stroke="#1C1917" stroke-width="2.5"/>
+                    <path d="M18 24v-7a10 10 0 0 1 20 0v7" stroke="#1C1917" stroke-width="2.5" fill="none"/>
+                    <circle cx="28" cy="35" r="3.5" fill="#1C1917"/>
+                    <line x1="28" y1="38" x2="28" y2="43" stroke="#1C1917" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <h2 class="font-comic text-3xl font-bold mb-2">Librarian Desk Only</h2>
+                <p class="text-base text-[#57534E]">Only accounts with the <strong class="text-[#1C1917]">auditor</strong> role can view the site log and moderate cards.</p>
+            </div>
+            <div class="zigzag-band" aria-hidden="true"></div>
+            <div class="p-6 space-y-4">
+                <button type="button" @onclick="SignInAsAltair"
+                        class="ink-btn w-full py-2.5 px-4 text-sm font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                    Demo: Sign in as Librarian (Altair)
+                </button>
+                <a href="/" class="inline-block text-xs font-mono font-bold uppercase underline underline-offset-2 hover:text-[#D93829]">Back to Library</a>
+            </div>
         </div>
     }
     else
     {
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b-2 border-[#1C1917]">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-8">
             <div>
-                <span class="inline-block px-2 py-0.5 text-xs font-mono font-bold uppercase bg-[#D93829] text-[#FFFDF7] border border-[#1C1917] mb-1">
-                    Auditor: @AuthState.CurrentUser?.Username
-                </span>
-                <h1 class="font-comic text-3xl sm:text-4xl font-bold">Site Audit &amp; Card Moderation</h1>
+                <span class="stamp bg-[#D93829] text-[#FFFDF7] mb-2">Auditor: @AuthState.CurrentUser?.Username</span>
+                <h1 class="font-comic text-3xl sm:text-4xl font-bold leading-tight">Site Audit &amp; Card Moderation</h1>
+                <div class="zigzag-rule w-40 mt-2" aria-hidden="true"></div>
             </div>
 
-            <div class="flex items-center gap-2 font-mono text-xs font-bold">
-                <button type="button" @onclick='() => activeTab = "ledger"'
-                        class='ink-btn px-4 py-2 uppercase rounded-sm @(activeTab == "ledger" ? "bg-[#F4C430]" : "bg-[#FFFDF7]")'>
+            <!-- Folder tabs -->
+            <div class="flex items-end gap-2 font-mono text-xs font-bold" role="tablist">
+                <button type="button" role="tab" aria-selected="@(activeTab == "ledger" ? "true" : "false")" @onclick='() => activeTab = "ledger"'
+                        class='ink-btn px-4 py-2 uppercase tracking-wider rounded-sm @(activeTab == "ledger" ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F4C430]/40")'>
                     Audit Log (@auditLogs.Count)
                 </button>
-                <button type="button" @onclick='() => activeTab = "moderation"'
-                        class='ink-btn px-4 py-2 uppercase rounded-sm @(activeTab == "moderation" ? "bg-[#F4C430]" : "bg-[#FFFDF7]")'>
+                <button type="button" role="tab" aria-selected="@(activeTab == "moderation" ? "true" : "false")" @onclick='() => activeTab = "moderation"'
+                        class='ink-btn px-4 py-2 uppercase tracking-wider rounded-sm @(activeTab == "moderation" ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F4C430]/40")'>
                     Books (@activeBooks.Count Active, @sealedBooks.Count Deleted)
                 </button>
             </div>
         </div>
 
+        <div class="panel-gutter mb-8 rounded-sm" aria-hidden="true"></div>
+
         @if (activeTab == "ledger")
         {
-            <div class="space-y-4">
+            <div class="space-y-5">
+                <!-- Filter bar -->
                 <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[3px_3px_0px_#1C1917] rounded-sm">
                     <div class="flex items-center gap-2 flex-wrap text-xs font-mono font-bold">
+                        <span class="text-[11px] uppercase tracking-wider text-[#57534E] mr-1">Filter</span>
                         @foreach (var filter in actionFilters)
                         {
                             <button type="button" @onclick="() => FilterByAction(filter.Key)"
-                                    class='ink-btn px-2.5 py-1 rounded-sm uppercase @(selectedAction == filter.Key ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FAF6EC]")'>
+                                    aria-pressed="@(selectedAction == filter.Key ? "true" : "false")"
+                                    class='ink-btn px-3 py-1 rounded-full uppercase @(selectedAction == filter.Key ? "bg-[#1C1917] text-[#F4C430]" : "bg-[#FAF6EC] text-[#1C1917] hover:bg-[#F4C430]/40")'>
                                 @filter.Value
                             </button>
                         }
                     </div>
-                    <button type="button" @onclick="LoadDataAsync" class="ink-btn px-3 py-1.5 text-xs font-mono font-bold uppercase bg-[#F4C430] rounded-sm">
+                    <button type="button" @onclick="LoadDataAsync"
+                            class="ink-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"></path>
+                        </svg>
                         Refresh
                     </button>
                 </div>
 
+                <!-- Ledger -->
                 <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
                     <table class="w-full text-left text-xs font-mono">
-                        <thead class="bg-[#F2EAD8] border-b-2 border-[#1C1917] uppercase">
+                        <thead class="bg-[#1C1917] text-[#FAF6EC] uppercase tracking-wider">
                             <tr>
-                                <th class="py-3 px-4">UTC Time</th>
-                                <th class="py-3 px-4">User</th>
-                                <th class="py-3 px-4">Action</th>
-                                <th class="py-3 px-4">Book</th>
-                                <th class="py-3 px-4">Details</th>
+                                <th class="py-3 px-4 font-bold">UTC Time</th>
+                                <th class="py-3 px-4 font-bold">User</th>
+                                <th class="py-3 px-4 font-bold">Action</th>
+                                <th class="py-3 px-4 font-bold">Book</th>
+                                <th class="py-3 px-4 font-bold">Details</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-[#1C1917]/20">
+                        <tbody class="divide-y-2 divide-dashed divide-[#1C1917]/15">
+                            @if (auditLogs.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="py-10 px-4 text-center text-[#57534E] uppercase tracking-wider">No log entries for this filter.</td>
+                                </tr>
+                            }
                             @foreach (var log in auditLogs)
                             {
-                                <tr class="hover:bg-[#FAF6EC]">
-                                    <td class="py-2.5 px-4 whitespace-nowrap">@log.CreatedAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                                    <td class="py-2.5 px-4 font-bold">@log.ActorName (@log.ActorRole)</td>
-                                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 border border-[#1C1917] bg-[#F4C430] font-bold">@log.Action</span></td>
-                                    <td class="py-2.5 px-4 font-bold text-[#D93829]">@log.TargetTitle</td>
-                                    <td class="py-2.5 px-4 font-hand text-sm">@log.Details</td>
+                                <tr class="odd:bg-[#FFFDF7] even:bg-[#FAF6EC] hover:bg-[#F4C430]/15 transition-colors">
+                                    <td class="py-2.5 px-4 whitespace-nowrap text-[#57534E]">@log.CreatedAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="py-2.5 px-4 whitespace-nowrap">
+                                        <span class="font-bold text-[#1C1917]">@log.ActorName</span>
+                                        <span class="text-[#57534E]">(@log.ActorRole)</span>
+                                    </td>
+                                    <td class="py-2.5 px-4 whitespace-nowrap">
+                                        <span class='stamp @(log.Action switch { "DELETE_BOOK" => "bg-[#D93829] text-[#FFFDF7]", "RESTORE_BOOK" => "bg-[#7C9A7E] text-[#FFFDF7]", "UPLOAD_BOOK" => "bg-[#6BA4B8] text-[#1C1917]", "EDIT_BOOK" => "bg-[#FFFDF7] text-[#1C1917]", "DOWNLOAD_BOOK" => "bg-[#F2EAD8] text-[#1C1917]", "POST_COMMENT" => "bg-[#F4C430] text-[#1C1917]", _ => "bg-[#1C1917] text-[#F4C430]" })'>
+                                            @log.Action
+                                        </span>
+                                    </td>
+                                    <td class="py-2.5 px-4 font-serif font-bold text-sm text-[#D93829]">@log.TargetTitle</td>
+                                    <td class="py-2.5 px-4 font-hand text-sm text-[#1C1917]">@log.Details</td>
                                 </tr>
                             }
                         </tbody>
@@ -87,61 +123,77 @@
         }
         else
         {
-            <div class="space-y-8">
-                <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-[#F2EAD8] border-b-2 border-[#1C1917] font-mono text-xs uppercase">
-                            <tr>
-                                <th class="py-3 px-4">ID</th>
-                                <th class="py-3 px-4">Title</th>
-                                <th class="py-3 px-4">Author</th>
-                                <th class="py-3 px-4">Source</th>
-                                <th class="py-3 px-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-[#1C1917]/20">
-                            @foreach (var book in activeBooks)
-                            {
-                                <tr>
-                                    <td class="py-2.5 px-4 font-mono text-xs">#@book.Id.ToString("D4")</td>
-                                    <td class="py-2.5 px-4 font-comic font-bold">@book.Title</td>
-                                    <td class="py-2.5 px-4">@book.Author</td>
-                                    <td class="py-2.5 px-4 font-mono text-xs">@book.SourceBadge</td>
-                                    <td class="py-2.5 px-4 text-right space-x-2">
-                                        <button type="button" @onclick="() => OpenEditModal(book)" class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#FFFDF7] rounded-sm">Edit</button>
-                                        <button type="button" @onclick="() => PromptSeal(book)" class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#D93829] text-[#FFFDF7] rounded-sm">Delete</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                @if (sealedBooks.Count > 0)
-                {
+            <div class="space-y-10">
+                <!-- Active books -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-3 h-3 rounded-full border-2 border-[#1C1917] bg-[#7C9A7E]" aria-hidden="true"></span>
+                        <h2 class="font-comic text-xl font-bold">On the Shelf</h2>
+                        <span class="stamp bg-[#FFFDF7] text-[#1C1917]">@activeBooks.Count</span>
+                    </div>
                     <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
                         <table class="w-full text-left text-sm">
-                            <thead class="bg-[#D93829] text-[#FFFDF7] border-b-2 border-[#1C1917] font-mono text-xs uppercase">
+                            <thead class="bg-[#1C1917] text-[#FAF6EC] font-mono text-xs uppercase tracking-wider">
                                 <tr>
-                                    <th class="py-3 px-4">Deleted Title</th>
-                                    <th class="py-3 px-4">Author</th>
-                                    <th class="py-3 px-4 text-right">Restore</th>
+                                    <th class="py-3 px-4 font-bold">ID</th>
+                                    <th class="py-3 px-4 font-bold">Title</th>
+                                    <th class="py-3 px-4 font-bold">Author</th>
+                                    <th class="py-3 px-4 font-bold">Source</th>
+                                    <th class="py-3 px-4 font-bold text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-[#1C1917]/20">
-                                @foreach (var book in sealedBooks)
+                            <tbody class="divide-y-2 divide-dashed divide-[#1C1917]/15">
+                                @foreach (var book in activeBooks)
                                 {
-                                    <tr>
-                                        <td class="py-2.5 px-4 font-comic font-bold">@book.Title</td>
+                                    <tr class="odd:bg-[#FFFDF7] even:bg-[#FAF6EC] hover:bg-[#F4C430]/15 transition-colors">
+                                        <td class="py-2.5 px-4 font-mono text-xs text-[#57534E] whitespace-nowrap">#@book.Id.ToString("D4")</td>
+                                        <td class="py-2.5 px-4 font-serif font-bold">@book.Title</td>
                                         <td class="py-2.5 px-4">@book.Author</td>
-                                        <td class="py-2.5 px-4 text-right">
-                                            <button type="button" @onclick="() => RestoreBook(book.Id)" class="ink-btn px-3 py-1 text-xs font-mono font-bold bg-[#F4C430] rounded-sm">Restore</button>
+                                        <td class="py-2.5 px-4 whitespace-nowrap"><span class="tag-chip bg-[#F2EAD8] text-[#1C1917]">@book.SourceBadge</span></td>
+                                        <td class="py-2.5 px-4 text-right whitespace-nowrap space-x-2">
+                                            <button type="button" @onclick="() => OpenEditModal(book)" class="ink-btn px-2.5 py-1 text-xs font-mono font-bold uppercase bg-[#FFFDF7] hover:bg-[#F2EAD8] rounded-sm">Edit</button>
+                                            <button type="button" @onclick="() => PromptSeal(book)" class="ink-btn px-2.5 py-1 text-xs font-mono font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">Delete</button>
                                         </td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
+                </section>
+
+                @if (sealedBooks.Count > 0)
+                {
+                    <!-- Deleted books -->
+                    <section>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="w-3 h-3 rounded-full border-2 border-[#1C1917] bg-[#D93829]" aria-hidden="true"></span>
+                            <h2 class="font-comic text-xl font-bold">Removed from Shelf</h2>
+                            <span class="stamp bg-[#D93829] text-[#FFFDF7]">@sealedBooks.Count</span>
+                        </div>
+                        <div class="bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-[#D93829] text-[#FFFDF7] border-b-2 border-[#1C1917] font-mono text-xs uppercase tracking-wider">
+                                    <tr>
+                                        <th class="py-3 px-4 font-bold">Deleted Title</th>
+                                        <th class="py-3 px-4 font-bold">Author</th>
+                                        <th class="py-3 px-4 font-bold text-right">Restore</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y-2 divide-dashed divide-[#1C1917]/15">
+                                    @foreach (var book in sealedBooks)
+                                    {
+                                        <tr class="odd:bg-[#FFFDF7] even:bg-[#FAF6EC]">
+                                            <td class="py-2.5 px-4 font-serif font-bold text-[#57534E] line-through decoration-[#D93829] decoration-2">@book.Title</td>
+                                            <td class="py-2.5 px-4 text-[#57534E]">@book.Author</td>
+                                            <td class="py-2.5 px-4 text-right">
+                                                <button type="button" @onclick="() => RestoreBook(book.Id)" class="ink-btn px-3 py-1 text-xs font-mono font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">Restore</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 }
             </div>
         }
@@ -150,13 +202,21 @@
 
 @if (isSealPromptOpen && bookToSeal != null)
 {
-    <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm p-6 space-y-4">
-            <h3 class="font-comic text-xl font-bold text-[#D93829]">Delete @bookToSeal.Title?</h3>
-            <input type="text" @bind="sealReason" class="w-full text-sm p-2 rounded-sm bg-[#FAF6EC] border-2 border-[#1C1917]" />
-            <div class="flex justify-end gap-2">
-                <button type="button" @onclick="() => isSealPromptOpen = false" class="ink-btn px-3 py-1 text-xs font-mono font-bold bg-[#FFFDF7] rounded-sm">Cancel</button>
-                <button type="button" @onclick="ConfirmSealBook" class="ink-btn px-4 py-1 text-xs font-mono font-bold bg-[#D93829] text-[#FFFDF7] rounded-sm">Delete</button>
+    <div class="fixed inset-0 z-50 bg-[#1C1917]/60 flex items-center justify-center p-4 animate-modal-in" role="dialog" aria-modal="true">
+        <div class="w-full max-w-md bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm overflow-hidden">
+            <div class="px-6 py-4 border-b-2 border-[#1C1917] bg-[#D93829] text-[#FFFDF7]">
+                <span class="font-mono text-[11px] font-bold uppercase tracking-[0.18em] opacity-90">Moderation</span>
+                <h3 class="font-comic text-xl font-bold leading-tight">Delete @bookToSeal.Title?</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#57534E] mb-1">Reason</label>
+                    <input type="text" @bind="sealReason" class="ink-field w-full text-sm p-2.5 rounded-sm" />
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t-2 border-dashed border-[#1C1917]/25">
+                    <button type="button" @onclick="() => isSealPromptOpen = false" class="ink-btn px-3 py-1.5 text-xs font-mono font-bold uppercase bg-[#FFFDF7] rounded-sm">Cancel</button>
+                    <button type="button" @onclick="ConfirmSealBook" class="ink-btn px-4 py-1.5 text-xs font-mono font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">Delete</button>
+                </div>
             </div>
         </div>
     </div>

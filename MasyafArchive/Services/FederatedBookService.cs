@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using EverydayLibrary.Models;
+using EveryPageLibrary.Models;
 
-namespace EverydayLibrary.Services;
+namespace EveryPageLibrary.Services;
 
 public class FederatedBookService
 {

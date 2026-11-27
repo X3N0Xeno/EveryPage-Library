@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using EverydayLibrary.Models;
+using EveryPageLibrary.Models;
 using static Supabase.Postgrest.Constants;
 
-namespace EverydayLibrary.Services;
+namespace EveryPageLibrary.Services;
 
 /// <summary>
 /// All persistence for the library: catalog reads, comment threads, community PDF
