@@ -1,6 +1,6 @@
-﻿@page "/"
-@using MasyafArchive.Models
-@using MasyafArchive.Services
+@page "/"
+@using EverydayLibrary.Models
+@using EverydayLibrary.Services
 @inject ArchiveService ArchiveService
 @inject FederatedBookService FederatedBooks
 @inject InternetArchiveBookSource InternetArchive
@@ -17,7 +17,7 @@
             </span>
 
             <h1 class="font-comic text-4xl sm:text-6xl font-bold text-[#1C1917] leading-none mb-3">
-                EveryPage Library
+                Everyday Library
             </h1>
 
             <p class="font-serif italic text-lg sm:text-xl text-[#57534E] mb-6 max-w-2xl mx-auto lg:mx-0">
@@ -417,7 +417,7 @@
             dotNetRef ??= DotNetObjectReference.Create(this);
             try
             {
-                await JSRuntime.InvokeVoidAsync("EveryPageLibrary.observeSentinel", scrollSentinel, dotNetRef);
+                await JSRuntime.InvokeVoidAsync("EverydayLibrary.observeSentinel", scrollSentinel, dotNetRef);
             }
             catch { }
         }
@@ -623,31 +623,31 @@
             // 1. Local plain-text books
             if (!string.IsNullOrWhiteSpace(book.ContentText) && string.IsNullOrWhiteSpace(book.PdfUrl) && string.IsNullOrWhiteSpace(book.EpubUrl))
             {
-                var manuscript = $"EVERYPAGE LIBRARY\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.Synopsis}\n\n{book.ContentText}";
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
+                var manuscript = $"EVERYDAY LIBRARY\nTITLE: {book.Title}\nAUTHOR: {book.Author}\n\n{book.Synopsis}\n\n{book.ContentText}";
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.downloadTextFile", $"{safeTitle}.txt", manuscript);
                 toastText = $"Saved \"{book.Title}.txt\" to your Downloads folder!";
             }
             // 2. Community PDFs hosted on Supabase Storage -> direct PDF download
             else if (book.IsIndexed && !string.IsNullOrWhiteSpace(book.PdfUrl))
             {
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.downloadDirectBlob", book.PdfUrl, $"{safeTitle}.pdf");
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.downloadDirectBlob", book.PdfUrl, $"{safeTitle}.pdf");
                 if (!success)
                 {
-                    success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", book.PdfUrl);
+                    success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.openSourcePage", book.PdfUrl);
                 }
                 toastText = $"Downloaded \"{book.Title}.pdf\"!";
             }
             // 3. Wikibooks -> Wikimedia REST API generates a direct PDF textbook
             else if (book.ExternalId?.StartsWith("wb-", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrWhiteSpace(book.PdfUrl))
             {
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", book.PdfUrl);
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.openSourcePage", book.PdfUrl);
                 toastText = $"Started Wikibooks PDF export for \"{book.Title}\"!";
             }
             // 4. Standard Ebooks -> open Standard Ebooks catalog page (1-click EPUB/AZW3/Kepub)
             else if (book.ExternalId?.StartsWith("se-", StringComparison.OrdinalIgnoreCase) == true)
             {
                 var targetUrl = book.FileUrl ?? book.EpubUrl;
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.openSourcePage", targetUrl);
                 toastText = $"Opened Standard Ebooks page for \"{book.Title}\" (1 click to save EPUB/AZW3/Kepub).";
             }
             // 5. Internet Archive, Open Library & Sacred Texts -> verify availability & open 1-click download page
@@ -673,7 +673,7 @@
                     _ => $"https://archive.org/details/{Uri.EscapeDataString(archiveId)}"
                 };
 
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.openSourcePage", targetUrl);
                 toastText = $"Opened {book.SourceBadge} download page for \"{book.Title}\" (1 click to save).";
             }
             // 6. Project Gutenberg -> open official ebook landing page
@@ -684,7 +684,7 @@
                     ? $"https://www.gutenberg.org/ebooks/{Uri.EscapeDataString(pgId)}"
                     : book.FileUrl;
 
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.openSourcePage", targetUrl);
                 toastText = $"Opened Project Gutenberg page for \"{book.Title}\" (1 click to save).";
             }
             // 7. DOAB Academic & remaining sources
@@ -704,7 +704,7 @@
                     return;
                 }
 
-                success = await JSRuntime.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                success = await JSRuntime.InvokeAsync<bool>("EverydayLibrary.openSourcePage", targetUrl);
                 toastText = $"Opened download page for \"{book.Title}\" (1 click to save).";
             }
 
@@ -793,7 +793,7 @@
     {
         var invalid = System.IO.Path.GetInvalidFileNameChars();
         var cleaned = string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c)).Replace(" ", "_");
-        return string.IsNullOrWhiteSpace(cleaned) ? "EveryPage_Book" : cleaned;
+        return string.IsNullOrWhiteSpace(cleaned) ? "Everyday_Book" : cleaned;
     }
 
     public async ValueTask DisposeAsync()
@@ -801,7 +801,7 @@
         AuthState.OnChange -= HandleAuthStateChange;
         loadCts?.Cancel();
         loadCts?.Dispose();
-        try { await JSRuntime.InvokeVoidAsync("EveryPageLibrary.disconnectSentinel"); }
+        try { await JSRuntime.InvokeVoidAsync("EverydayLibrary.disconnectSentinel"); }
         catch { }
         dotNetRef?.Dispose();
     }

@@ -4,8 +4,8 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using MasyafArchive;
-using MasyafArchive.Services;
+using EverydayLibrary;
+using EverydayLibrary.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -47,11 +47,11 @@ builder.Services.AddScoped<FederatedBookService>();
 
 static HttpClient CreateCatalogClient() => new() { Timeout = TimeSpan.FromSeconds(30) };
 
-Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.InternetArchiveBookSource>(builder.Services);
-Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.SacredTextsBookSource>(builder.Services);
-Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.StandardEbooksBookSource>(builder.Services);
-Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.WikibooksBookSource>(builder.Services);
-Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<MasyafArchive.Services.DoabBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<EverydayLibrary.Services.InternetArchiveBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<EverydayLibrary.Services.SacredTextsBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<EverydayLibrary.Services.StandardEbooksBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<EverydayLibrary.Services.WikibooksBookSource>(builder.Services);
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped<EverydayLibrary.Services.DoabBookSource>(builder.Services);
 
 await builder.Build().RunAsync();
 

@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EveryPage Library &mdash; Everything Humanity Has Written, Open to Everyone</title>
-    <meta name="description" content="EveryPage Library is a free, open digital library. Search community PDF uploads, Project Gutenberg and Open Library, then read online or download directly." />
+    <title>Everyday Library &mdash; Everything Humanity Has Written, Open to Everyone</title>
+    <meta name="description" content="Everyday Library is a free, open digital library. Search community PDF uploads, Project Gutenberg and Open Library, then read online or download directly." />
     <base href="/" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -60,7 +60,7 @@
                     <rect x="85" y="16" width="10" height="10" fill="#FFFDF7" stroke="#1C1917" stroke-width="1.8" class="animate-bounce"/>
                 </svg>
             </div>
-            <h1 class="font-comic text-2xl sm:text-3xl font-bold text-[#1C1917] tracking-wide mb-1">EveryPage Library</h1>
+            <h1 class="font-comic text-2xl sm:text-3xl font-bold text-[#1C1917] tracking-wide mb-1">Everyday Library</h1>
             <p class="font-mono text-xs text-[#57534E]">*clack-clack-ding!* Setting out the reading cards...</p>
         </div>
     </div>
@@ -72,7 +72,7 @@
     </div>
 
     <script>
-        window.EveryPageLibrary = {
+        window.EverydayLibrary = {
             _observer: null,
             _scrollHandler: null,
             _scrollTicking: false,
@@ -125,7 +125,7 @@
                 var objectUrl = URL.createObjectURL(blob);
                 var anchor = document.createElement('a');
                 anchor.href = objectUrl;
-                anchor.download = fileName || 'EveryPage_Book';
+                anchor.download = fileName || 'Everyday_Book';
                 anchor.style.display = 'none';
                 document.body.appendChild(anchor);
                 anchor.click();

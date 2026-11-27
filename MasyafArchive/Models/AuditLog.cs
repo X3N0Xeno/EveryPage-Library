@@ -2,7 +2,7 @@ using System;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
-namespace MasyafArchive.Models;
+namespace EverydayLibrary.Models;
 
 [Table("audit_logs")]
 public class AuditLog : BaseModel

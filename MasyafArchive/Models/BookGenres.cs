@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MasyafArchive.Models;
+namespace EverydayLibrary.Models;
 
 public sealed record BookFacetProfile(
     string Form,

@@ -1,10 +1,10 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
+<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <PageTitle>404 &mdash; Page Not Found | EveryPage Library</PageTitle>
+        <PageTitle>404 &mdash; Page Not Found | Everyday Library</PageTitle>
         <LayoutView Layout="@typeof(MainLayout)">
             <div class="max-w-md mx-auto my-20 p-8 bg-[#181614] border border-[#2E2A25] rounded-sm text-center">
                 <div class="w-12 h-12 mx-auto mb-3 rounded-full border border-[#2E2A25] flex items-center justify-center text-[#C8963E] bg-[#0F0E0D]">

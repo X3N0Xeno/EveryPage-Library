@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using MasyafArchive.Models;
+using EverydayLibrary.Models;
 using Microsoft.JSInterop;
 
-namespace MasyafArchive.Services;
+namespace EverydayLibrary.Services;
 
 public class AuthStateService
 {
@@ -31,7 +31,7 @@ public class AuthStateService
     {
         try
         {
-            var storedJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", "masyaf_scholar");
+            var storedJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", "everyday_library_user");
             if (!string.IsNullOrWhiteSpace(storedJson))
             {
                 var scholar = JsonSerializer.Deserialize<Scholar>(storedJson);
@@ -70,7 +70,7 @@ public class AuthStateService
 
             CurrentUser = scholar;
             var json = JsonSerializer.Serialize(scholar);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "masyaf_scholar", json);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "everyday_library_user", json);
 
             await _archiveService.LogAuditAsync(
                 actorName: scholar.Username,
@@ -132,7 +132,7 @@ public class AuthStateService
 
             CurrentUser = created;
             var json = JsonSerializer.Serialize(created);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "masyaf_scholar", json);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "everyday_library_user", json);
 
             await _archiveService.LogAuditAsync(
                 actorName: created.Username,
@@ -170,7 +170,7 @@ public class AuthStateService
         CurrentUser = null;
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "masyaf_scholar");
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "everyday_library_user");
         }
         catch
         {

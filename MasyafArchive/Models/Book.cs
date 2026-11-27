@@ -1,9 +1,9 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using System;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
-namespace MasyafArchive.Models;
+namespace EverydayLibrary.Models;
 
 /// <summary>
 /// A single record in the public library catalog (public.books).

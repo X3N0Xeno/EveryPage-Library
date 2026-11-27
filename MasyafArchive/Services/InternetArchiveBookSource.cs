@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using MasyafArchive.Models;
+using EverydayLibrary.Models;
 
-namespace MasyafArchive.Services;
+namespace EverydayLibrary.Services;
 
 public class InternetArchiveBookSource
 {

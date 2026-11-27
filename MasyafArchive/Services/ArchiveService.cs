@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using MasyafArchive.Models;
+using EverydayLibrary.Models;
 using static Supabase.Postgrest.Constants;
 
-namespace MasyafArchive.Services;
+namespace EverydayLibrary.Services;
 
 /// <summary>
 /// All persistence for the library: catalog reads, comment threads, community PDF

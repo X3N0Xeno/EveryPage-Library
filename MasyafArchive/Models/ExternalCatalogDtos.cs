@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace MasyafArchive.Models;
+namespace EverydayLibrary.Models;
 
 public class GutendexResponse
 {

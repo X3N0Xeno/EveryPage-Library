@@ -1,5 +1,5 @@
-﻿@using MasyafArchive.Models
-@using MasyafArchive.Services
+@using EverydayLibrary.Models
+@using EverydayLibrary.Services
 @inject ArchiveService ArchiveService
 @inject AuthStateService AuthState
 
@@ -20,7 +20,7 @@
 
             <form @onsubmit="HandleSubmit" class="flex-1 overflow-y-auto p-6 space-y-5">
                 <p class="text-base text-[#57534E]">
-                    Contribute original works or rare editions to EveryPage Library. Uploads accept <strong>.pdf</strong> files only.
+                    Contribute original works or rare editions to Everyday Library. Uploads accept <strong>.pdf</strong> files only.
                 </p>
 
                 @if (!string.IsNullOrWhiteSpace(errorMessage))

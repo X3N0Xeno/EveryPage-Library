@@ -6,9 +6,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using MasyafArchive.Models;
+using EverydayLibrary.Models;
 
-namespace MasyafArchive.Services;
+namespace EverydayLibrary.Services;
 
 public class GutendexBookSource
 {
