@@ -53,7 +53,9 @@ public class GutendexBookSource
     {
         try
         {
-            var payload = await _http.GetFromJsonAsync<GutendexResponse>(url, JsonOptions, cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(7));
+            var payload = await _http.GetFromJsonAsync<GutendexResponse>(url, JsonOptions, cts.Token);
             if (payload?.Results == null)
                 return new List<Book>();
 

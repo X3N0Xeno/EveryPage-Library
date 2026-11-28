@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,43 +12,34 @@ namespace EveryPageLibrary.Services;
 public class OpenLibraryBookSource
 {
     private const string SearchUrl = "https://openlibrary.org/search.json";
-    private const string Fields = "key,title,author_name,first_publish_year,edition_count,cover_i,ia,subject";
+    private const string Fields = "key,title,author_name,first_publish_year,edition_count,cover_i,ia,ia_collection_s,public_scan_b,subject";
     private const string SourceName = "Open Library";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     public const string ArchiveEmbedBaseUrl = "https://archive.org/embed/";
-
     private readonly HttpClient _http;
 
-    public OpenLibraryBookSource(HttpClient http)
-    {
-        _http = http;
-    }
+    public OpenLibraryBookSource(HttpClient http) => _http = http;
 
-    public Task<List<Book>> GetPopularAsync(int limit = 28, int page = 1, CancellationToken cancellationToken = default)
+    public Task<List<Book>> GetPopularAsync(int limit = 24, int page = 1, CancellationToken cancellationToken = default)
     {
-        var url = $"{SearchUrl}?q=subject:classics&sort=editions&has_fulltext=true&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
+        var url = $"{SearchUrl}?q=subject:classics+public_scan_b:true&sort=editions&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
         return FetchAsync(url, "Classics", limit, cancellationToken);
     }
 
-    public Task<List<Book>> SearchAsync(string query, string? genre, int limit = 28, int page = 1, CancellationToken cancellationToken = default)
+    public Task<List<Book>> SearchAsync(string query, string? genre, int limit = 24, int page = 1, CancellationToken cancellationToken = default)
     {
-        var fullQuery = !string.IsNullOrWhiteSpace(genre) && !genre.Equals("All", StringComparison.OrdinalIgnoreCase)
-            ? $"{query} subject:{BookGenres.ToOpenLibrarySubject(genre)}"
-            : query;
+        var baseQ = !string.IsNullOrWhiteSpace(genre) && !genre.Equals("All", StringComparison.OrdinalIgnoreCase)
+            ? $"{query} subject:{BookGenres.ToOpenLibrarySubject(genre)} public_scan_b:true"
+            : $"{query} public_scan_b:true";
 
-        var url = $"{SearchUrl}?q={Uri.EscapeDataString(fullQuery)}&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
+        var url = $"{SearchUrl}?q={Uri.EscapeDataString(baseQ)}&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
         return FetchAsync(url, genre, limit, cancellationToken);
     }
 
-    public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 28, int page = 1, CancellationToken cancellationToken = default)
+    public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 24, int page = 1, CancellationToken cancellationToken = default)
     {
         var subject = BookGenres.ToOpenLibrarySubject(genre);
-        var url = $"{SearchUrl}?q={Uri.EscapeDataString($"subject:{subject}")}&sort=editions&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
+        var url = $"{SearchUrl}?q={Uri.EscapeDataString($"subject:{subject} public_scan_b:true")}&sort=editions&fields={Fields}&limit={limit}&page={Math.Max(1, page)}";
         return FetchAsync(url, genre, limit, cancellationToken);
     }
 
@@ -57,93 +47,111 @@ public class OpenLibraryBookSource
     {
         try
         {
-            var payload = await _http.GetFromJsonAsync<OpenLibrarySearchResponse>(url, JsonOptions, cancellationToken);
-            if (payload?.Docs == null)
+            using var res = await _http.GetAsync(url, cancellationToken);
+            if (!res.IsSuccessStatusCode) return new List<Book>();
+
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync(cancellationToken));
+            if (!doc.RootElement.TryGetProperty("docs", out var docs) || docs.ValueKind != JsonValueKind.Array)
                 return new List<Book>();
 
-            return payload.Docs
-                .Select(doc => Map(doc, genre))
-                .Where(book => book != null)
-                .Select(book => book!)
-                .Take(limit)
-                .ToList();
+            var results = new List<Book>();
+            foreach (var el in docs.EnumerateArray())
+            {
+                var mapped = Map(el, genre);
+                if (mapped != null) results.Add(mapped);
+                if (results.Count >= limit) break;
+            }
+            return results;
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"[OpenLibraryBookSource] Request failed ({url}): {ex.Message}");
             return new List<Book>();
         }
     }
 
-    private static Book? Map(OpenLibraryDoc doc, string? genre)
+    private static Book? Map(JsonElement el, string? genre)
     {
-        if (string.IsNullOrWhiteSpace(doc.Title))
+        var title = el.TryGetProperty("title", out var tEl) ? tEl.GetString() : null;
+        if (string.IsNullOrWhiteSpace(title)) return null;
+
+        // Require verified public_scan_b == true
+        if (!el.TryGetProperty("public_scan_b", out var scanEl) || scanEl.ValueKind != JsonValueKind.True)
             return null;
 
-        var archiveId = doc.InternetArchiveIdentifiers?
-            .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id));
-
-        var subjects = doc.Subject?
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Take(4)
-            .ToList() ?? new List<string>();
-
-        var book = new Book
+        // Reject any borrow-only / controlled lending collections
+        if (el.TryGetProperty("ia_collection_s", out var colEl) && colEl.ValueKind == JsonValueKind.Array)
         {
-            Title = doc.Title.Trim(),
-            Author = doc.AuthorName?.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? "Unknown author",
-            Category = BookGenres.ToStorage(genre ?? InferGenre(doc.Subject)),
+            foreach (var c in colEl.EnumerateArray())
+            {
+                var val = c.GetString() ?? "";
+                if (val.Equals("inlibrary", StringComparison.OrdinalIgnoreCase) ||
+                    val.Equals("printdisabled", StringComparison.OrdinalIgnoreCase) ||
+                    val.Equals("lending", StringComparison.OrdinalIgnoreCase))
+                    return null;
+            }
+        }
+
+        string? archiveId = null;
+        if (el.TryGetProperty("ia", out var iaArr) && iaArr.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in iaArr.EnumerateArray())
+            {
+                var candidate = item.GetString();
+                if (!string.IsNullOrWhiteSpace(candidate))
+                {
+                    archiveId = candidate;
+                    break;
+                }
+            }
+        }
+
+        // Never return catalog-only stubs that link to Open Library checkout pages
+        if (string.IsNullOrWhiteSpace(archiveId))
+            return null;
+
+        var author = "Unknown author";
+        if (el.TryGetProperty("author_name", out var authArr) && authArr.ValueKind == JsonValueKind.Array)
+        {
+            var first = authArr.EnumerateArray().FirstOrDefault().GetString();
+            if (!string.IsNullOrWhiteSpace(first)) author = first;
+        }
+
+        var subjects = new List<string>();
+        if (el.TryGetProperty("subject", out var subArr) && subArr.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var s in subArr.EnumerateArray().Take(4))
+            {
+                var sv = s.GetString();
+                if (!string.IsNullOrWhiteSpace(sv)) subjects.Add(sv);
+            }
+        }
+
+        var year = el.TryGetProperty("first_publish_year", out var yrEl) && yrEl.ValueKind == JsonValueKind.Number
+            ? yrEl.GetInt32().ToString() : string.Empty;
+        var editions = el.TryGetProperty("edition_count", out var edEl) && edEl.ValueKind == JsonValueKind.Number
+            ? edEl.GetInt32() : 0;
+        var coverId = el.TryGetProperty("cover_i", out var covEl) && covEl.ValueKind == JsonValueKind.Number
+            ? covEl.GetInt32() : (int?)null;
+
+        var pdfUrl = $"https://archive.org/download/{archiveId}/{archiveId}.pdf";
+        return new Book
+        {
+            Title = title.Trim(),
+            Author = author,
+            Category = BookGenres.ToStorage(genre ?? (subjects.Count > 0 ? subjects[0] : "Literature")),
             Synopsis = subjects.Count > 0
                 ? string.Join(" \u00B7 ", subjects)
-                : "Cataloged edition from the Open Library & Internet Archive collection.",
-            PublicationYear = doc.FirstPublishYear?.ToString() ?? string.Empty,
-            CoverUrl = doc.CoverId.HasValue
-                ? $"https://covers.openlibrary.org/b/id/{doc.CoverId.Value}-M.jpg"
-                : null,
+                : "Verified public-domain full-text scan from Open Library & Internet Archive.",
+            PublicationYear = year,
+            CoverUrl = coverId.HasValue ? $"https://covers.openlibrary.org/b/id/{coverId.Value}-M.jpg" : null,
             SourceName = SourceName,
             UploadedBy = SourceName,
-            DownloadCount = doc.EditionCount,
+            DownloadCount = editions,
+            PdfUrl = pdfUrl,
+            EpubUrl = $"https://archive.org/download/{archiveId}/{archiveId}.epub",
+            FileUrl = pdfUrl,
+            ExternalId = $"ol-{archiveId}",
             ContentText = string.Empty
-        };
-
-        if (!string.IsNullOrWhiteSpace(archiveId))
-        {
-            book.PdfUrl = $"https://archive.org/download/{archiveId}/{archiveId}.pdf";
-            book.EpubUrl = $"https://archive.org/download/{archiveId}/{archiveId}.epub";
-            book.FileUrl = book.PdfUrl;
-            book.ExternalId = $"ol-{archiveId}";
-        }
-        else if (!string.IsNullOrWhiteSpace(doc.WorkKey))
-        {
-            book.ExternalId = $"ol-{doc.WorkKey!.TrimStart('/')}";
-            book.FileUrl = $"https://openlibrary.org{doc.WorkKey}";
-        }
-
-        return book;
-    }
-
-    private static string InferGenre(IEnumerable<string>? subjects)
-    {
-        if (subjects == null) return "Literature";
-        var haystack = string.Join(' ', subjects).ToLowerInvariant();
-
-        return haystack switch
-        {
-            _ when haystack.Contains("science fiction") => "Science Fiction",
-            _ when haystack.Contains("fantasy") => "Fantasy",
-            _ when haystack.Contains("mystery") || haystack.Contains("detective") => "Mystery & Detective",
-            _ when haystack.Contains("horror") || haystack.Contains("gothic") => "Horror & Gothic",
-            _ when haystack.Contains("romance") => "Romance",
-            _ when haystack.Contains("adventure") => "Adventure",
-            _ when haystack.Contains("philosoph") => "Philosophy",
-            _ when haystack.Contains("history") => "History",
-            _ when haystack.Contains("science") => "Science",
-            _ when haystack.Contains("psycholog") => "Psychology",
-            _ when haystack.Contains("poetry") => "Poetry",
-            _ when haystack.Contains("drama") => "Drama",
-            _ when haystack.Contains("biograph") => "Biography",
-            _ when haystack.Contains("technology") => "Technology",
-            _ => "Literature"
         };
     }
 }

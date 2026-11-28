@@ -1,7 +1,7 @@
 export async function onRequestGet(context) {
   const url = new URL(context.request.url);
   const rawQ = (url.searchParams.get("q") || "").trim();
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "20", 10) || 20, 30);
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "25", 10) || 25, 40);
 
   const corsHeaders = {
     "Content-Type": "application/json; charset=utf-8",
@@ -22,12 +22,12 @@ export async function onRequestGet(context) {
     items.push(item);
   };
 
-  // 1. Query OAPEN & DOAB server-side (bypasses browser CORS 403 blocks)
-  const fetchOapenLike = async (baseUrl, sourceName) => {
+  // 1. OAPEN & DOAB server-side (zero browser CORS blocks)
+  const fetchDspaceBooks = async (baseUrl, sourceName) => {
     try {
-      const res = await fetch(`${baseUrl}/rest/search?query=${encodeURIComponent(rawQ)}&expand=metadata,bitstreams&limit=10`, {
+      const res = await fetch(`${baseUrl}/rest/search?query=${encodeURIComponent(rawQ)}&expand=metadata,bitstreams&limit=12`, {
         headers: { "Accept": "application/json", "User-Agent": "EveryPageLibrary/1.0" },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5500)
       });
       if (!res.ok) return;
       const arr = await res.json();
@@ -53,78 +53,59 @@ export async function onRequestGet(context) {
     } catch {}
   };
 
-  // 2. Open-web direct PDF / EPUB search (excludes Scribd/Academia/ResearchGate paywalls)
-  const fetchWebPdfMirrors = async () => {
-    const searchQuery = `"${rawQ}" (filetype:pdf OR filetype:epub) -site:scribd.com -site:academia.edu -site:researchgate.net -site:studocu.com -site:coursehero.com`;
-    const instances = [
-      "https://searx.be/search",
-      "https://search.sapti.me/search",
-      "https://searx.tiekoetter.com/search",
-      "https://priv.au/search"
-    ];
-
-    for (const base of instances) {
-      try {
-        const res = await fetch(`${base}?q=${encodeURIComponent(searchQuery)}&format=json&language=en`, {
-          headers: { "User-Agent": "EveryPageLibrary/1.0" },
-          signal: AbortSignal.timeout(5000)
-        });
-        if (!res.ok) continue;
-        const data = await res.json();
-        let found = 0;
-        for (const r of (data.results || [])) {
-          const link = (r.url || "").trim();
-          const lower = link.toLowerCase();
-          if (!lower.includes(".pdf") && !lower.includes(".epub")) continue;
-          let host = "Open Web";
-          try { host = new URL(link).hostname.replace(/^www\./, ""); } catch {}
-          addItem({
-            title: (r.title || rawQ).replace(/\s*\[PDF\]\s*/gi, "").trim(),
-            url: link,
-            snippet: (r.content || `Direct free file hosted on ${host}`).trim(),
-            host,
-            format: lower.includes(".pdf") ? "pdf" : "epub"
-          });
-          found++;
-        }
-        if (found > 0) return;
-      } catch {}
-    }
-
-    // DuckDuckGo HTML fallback
+  // 2. OpenAlex Books server-side (bypasses browser 429 rate-limit pools)
+  const fetchOpenAlexBooks = async () => {
     try {
-      const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`, {
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      const api = `https://api.openalex.org/works?search=${encodeURIComponent(rawQ)}&filter=has_fulltext:true,is_oa:true,type:book&per-page=12&mailto=everypage@pages.dev`;
+      const res = await fetch(api, {
+        headers: { "User-Agent": "EveryPageLibrary/1.0 (mailto:everypage@pages.dev)" },
         signal: AbortSignal.timeout(5500)
       });
-      if (res.ok) {
-        const html = await res.text();
-        const linkRegex = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-        let match;
-        while ((match = linkRegex.exec(html)) !== null) {
-          let href = match[1];
-          const uddg = href.match(/[?&]uddg=([^&]+)/);
-          if (uddg) href = decodeURIComponent(uddg[1]);
-          const lower = href.toLowerCase();
-          if (!lower.includes(".pdf") && !lower.includes(".epub")) continue;
-          let host = "Open Web";
-          try { host = new URL(href).hostname.replace(/^www\./, ""); } catch {}
-          addItem({
-            title: match[2].replace(/<[^>]+>/g, "").trim() || rawQ,
-            url: href,
-            snippet: `Direct ${lower.includes(".pdf") ? "PDF" : "EPUB"} hosted on ${host}`,
-            host,
-            format: lower.includes(".pdf") ? "pdf" : "epub"
-          });
-        }
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const w of (data.results || [])) {
+        const oaUrl = w?.open_access?.oa_url;
+        if (!oaUrl || !w.title) continue;
+        const authors = (w.authorships || []).slice(0, 2).map(a => a?.author?.display_name).filter(Boolean).join(", ");
+        addItem({
+          title: w.title.trim(),
+          url: oaUrl,
+          snippet: authors ? `Open-access book by ${authors} (${w.publication_year || ""}).` : "Open-access full-text book via OpenAlex.",
+          host: authors || "OpenAlex Books",
+          format: oaUrl.toLowerCase().includes(".epub") ? "epub" : "pdf"
+        });
+      }
+    } catch {}
+  };
+
+  // 3. Internet Archive verified Text-PDFs (strictly excluding inlibrary/printdisabled/restricted)
+  const fetchArchiveDirectPdfs = async () => {
+    try {
+      const q = `(${rawQ}) AND mediatype:texts AND format:"Text PDF" AND NOT collection:inlibrary AND NOT collection:printdisabled AND NOT access-restricted-item:true`;
+      const api = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=title&fl[]=creator&sort[]=downloads+desc&rows=12&output=json`;
+      const res = await fetch(api, { signal: AbortSignal.timeout(5500) });
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const d of (data?.response?.docs || [])) {
+        if (!d.identifier || !d.title) continue;
+        const title = Array.isArray(d.title) ? d.title[0] : d.title;
+        const creator = Array.isArray(d.creator) ? d.creator[0] : (d.creator || "Internet Archive");
+        addItem({
+          title: String(title).trim(),
+          url: `https://archive.org/download/${encodeURIComponent(d.identifier)}/${encodeURIComponent(d.identifier)}.pdf`,
+          snippet: `Direct public-domain PDF by ${creator}.`,
+          host: String(creator),
+          format: "pdf"
+        });
       }
     } catch {}
   };
 
   await Promise.allSettled([
-    fetchWebPdfMirrors(),
-    fetchOapenLike("https://library.oapen.org", "OAPEN Library"),
-    fetchOapenLike("https://directory.doabooks.org", "DOAB Academic")
+    fetchDspaceBooks("https://library.oapen.org", "OAPEN Library"),
+    fetchDspaceBooks("https://directory.doabooks.org", "DOAB Academic"),
+    fetchOpenAlexBooks(),
+    fetchArchiveDirectPdfs()
   ]);
 
   return new Response(JSON.stringify({ results: items.slice(0, limit) }), { headers: corsHeaders });
