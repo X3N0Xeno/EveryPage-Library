@@ -4,6 +4,7 @@
 @using EveryPageLibrary.Components
 @inject AuthStateService AuthState
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @implements IDisposable
 
 <div class="min-h-screen paper-sheet bg-[#FAF6EC] text-[#1C1917] flex flex-col font-hand selection:bg-[#F4C430]/50 selection:text-[#1C1917]">
@@ -12,9 +13,9 @@
             <div class="flex items-center justify-between h-16 sm:h-20">
                 <div class="flex items-center gap-4">
                     <a href="/" class="flex items-center gap-3 group">
-                        <div class="w-11 h-11 rounded-sm bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[2px_2px_0px_#1C1917] flex items-center justify-center overflow-hidden p-0.5 group-hover:-translate-y-0.5 transition-transform">
-                            <img src="images/logo.png" alt="EveryPage Library logo" class="w-full h-full object-contain" />
-                        </div>
+                        <img src="logo.png"
+                             alt="EveryPage Library"
+                             class="w-11 h-11 sm:w-12 sm:h-12 shrink-0 object-contain rounded-md group-hover:-translate-y-0.5 transition-transform" />
                         <div>
                             <span class="font-comic text-xl sm:text-2xl font-bold text-[#1C1917] group-hover:text-[#D93829] transition-colors block leading-none">
                                 EveryPage Library
@@ -44,37 +45,111 @@
                     </nav>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    @if (AuthState.IsAuthenticated)
+                <!-- Uncluttered Header Right: Now Playing Pill + Burger Menu -->
+                <div class="relative flex items-center gap-2">
+                    @if (!string.IsNullOrEmpty(nowPlayingTitle))
                     {
-                        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#F2EAD8] border-2 border-[#1C1917]">
-                            <div class="w-2.5 h-2.5 rounded-full @(AuthState.IsAuditor ? "bg-[#D93829]" : "bg-[#F4C430]") border border-[#1C1917]"></div>
-                            <span class="text-sm font-bold text-[#1C1917]">@AuthState.CurrentUser?.Username</span>
-                            <span class="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-sm border border-[#1C1917] @(AuthState.IsAuditor ? "bg-[#D93829] text-[#FFFDF7]" : "bg-[#FFFDF7] text-[#1C1917]")">
-                                @(AuthState.IsAuditor ? "Auditor" : "Contributor")
-                            </span>
-                        </div>
-
                         <button type="button"
-                                @onclick="SignOut"
-                                class="ink-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917] rounded-sm">
-                            <span>Sign Out</span>
+                                @onclick="() => isPlayerOpen = true"
+                                title="Open YouTube Audio Player"
+                                class="hidden sm:inline-flex items-center gap-2 px-2.5 py-1.5 text-xs font-mono font-bold bg-[#F2EAD8] hover:bg-[#F4C430] text-[#1C1917] border-2 border-[#1C1917] rounded-sm max-w-[210px] truncate">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                            <span class="truncate">@nowPlayingTitle</span>
                         </button>
                     }
-                    else
+
+                    <button type="button"
+                            @onclick="() => isBurgerOpen = !isBurgerOpen"
+                            aria-label="Open menu"
+                            class="ink-btn inline-flex items-center gap-2 px-3 py-2 text-xs font-comic font-bold uppercase bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917] rounded-sm">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            @if (isBurgerOpen)
+                            {
+                                <path d="M6 6l12 12M6 18L18 6" />
+                            }
+                            else
+                            {
+                                <path d="M4 7h16M4 12h16M4 17h16" />
+                            }
+                        </svg>
+                        <span>Menu</span>
+                    </button>
+
+                    @if (isBurgerOpen)
                     {
-                        <button type="button"
-                                @onclick="() => isAuthModalOpen = true"
-                                class="ink-btn inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
-                            <span>Library Card Sign In</span>
-                        </button>
+                        <div class="fixed inset-0 z-40" @onclick="() => isBurgerOpen = false"></div>
+                        <div class="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[5px_5px_0px_#1C1917] rounded-sm p-3 z-50 space-y-3">
+                            <!-- Mobile Nav -->
+                            <div class="md:hidden space-y-1 pb-2 border-b border-dashed border-[#1C1917]/25">
+                                <div class="px-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">Navigation</div>
+                                <a href="" @onclick="() => isBurgerOpen = false" class="block px-2.5 py-1.5 rounded-sm text-xs font-comic font-bold uppercase hover:bg-[#F2EAD8] text-[#1C1917]">
+                                    Browse Books
+                                </a>
+                                <a href="audit-sanctum" @onclick="() => isBurgerOpen = false" class="block px-2.5 py-1.5 rounded-sm text-xs font-comic font-bold uppercase hover:bg-[#F2EAD8] text-[#1C1917]">
+                                    Site Audit
+                                </a>
+                            </div>
+
+                            <!-- 4 Themes Total: Charlie Brown, Linus's Blanket (Cool), Snoopy Daytime (Light B&W), Snoopy Nighttime (Dark B&W) -->
+                            <div class="pb-2.5 border-b border-dashed border-[#1C1917]/25 space-y-1">
+                                <div class="px-1 mb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
+                                    Paper Theme
+                                </div>
+                                @foreach (var theme in Themes)
+                                {
+                                    <button type="button"
+                                            @onclick="() => SelectTheme(theme.Id)"
+                                            class="w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-comic font-bold flex items-center justify-between transition-colors @(currentTheme == theme.Id ? "bg-[#F4C430] text-[#1C1917] border border-[#1C1917]" : "hover:bg-[#F2EAD8] text-[#1C1917]")">
+                                        <span>@theme.Label</span>
+                                        <span class="flex items-center gap-1 shrink-0">
+                                            <span class="w-3 h-3 rounded-full border border-[#1C1917]" style="background:@theme.SwatchPrimary"></span>
+                                            <span class="w-3 h-3 rounded-full border border-[#1C1917]" style="background:@theme.SwatchAccent"></span>
+                                        </span>
+                                    </button>
+                                }
+                            </div>
+
+                            <!-- YouTube Audio Player Trigger -->
+                            <div class="pb-2.5 border-b border-dashed border-[#1C1917]/25">
+                                <button type="button"
+                                        @onclick="() => { isPlayerOpen = true; isBurgerOpen = false; }"
+                                        class="w-full ink-btn px-3 py-2 text-xs font-comic font-bold uppercase bg-[#F2EAD8] hover:bg-[#F4C430] text-[#1C1917] rounded-sm flex items-center justify-between">
+                                    <span>Set The Mood</span>
+                                    <span class="font-mono text-[10px]">@(!string.IsNullOrEmpty(nowPlayingTitle) ? "PLAYING" : "OPEN")</span>
+                                </button>
+                            </div>
+
+                            <!-- Account / Library Card -->
+                            <div>
+                                @if (AuthState.IsAuthenticated)
+                                {
+                                    <div class="flex items-center justify-between gap-2 px-2.5 py-2 mb-2 rounded-sm bg-[#F2EAD8] border border-[#1C1917]">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full @(AuthState.IsAuditor ? "bg-[#D93829]" : "bg-[#F4C430]") border border-[#1C1917] shrink-0"></span>
+                                            <span class="text-xs font-bold text-[#1C1917] truncate">@AuthState.CurrentUser?.Username</span>
+                                        </div>
+                                        <span class="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-sm border border-[#1C1917] bg-[#FFFDF7] text-[#1C1917]">
+                                            @(AuthState.IsAuditor ? "Auditor" : "Contributor")
+                                        </span>
+                                    </div>
+                                    <button type="button"
+                                            @onclick="SignOut"
+                                            class="w-full ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917] rounded-sm">
+                                        Sign Out
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            @onclick="() => { isAuthModalOpen = true; isBurgerOpen = false; }"
+                                            class="w-full ink-btn px-3 py-2 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
+                                        Library Card Sign In
+                                    </button>
+                                }
+                            </div>
+                        </div>
                     }
                 </div>
-            </div>
-
-            <div class="flex md:hidden items-center justify-around py-2 border-t-2 border-dashed border-[#1C1917]/20 text-xs font-comic font-bold uppercase">
-                <NavLink href="" Match="NavLinkMatch.All" class="py-1 px-3 text-[#1C1917]">Browse Books</NavLink>
-                <NavLink href="audit-sanctum" class="py-1 px-3 text-[#1C1917]">Site Audit</NavLink>
             </div>
         </div>
     </header>
@@ -105,8 +180,26 @@
            OnClose="() => isAuthModalOpen = false"
            OnAuthenticated="HandleAuthenticated" />
 
+<AmbienceDrawer IsOpen="isPlayerOpen"
+                OnClose="() => isPlayerOpen = false"
+                OnMoodChanged="title => nowPlayingTitle = title" />
+
 @code {
+    private sealed record ThemeOption(string Id, string Label, string SwatchPrimary, string SwatchAccent);
+
+    private static readonly IReadOnlyList<ThemeOption> Themes = new[]
+    {
+        new ThemeOption("charlie-brown", "Charlie Brown (Classic)", "#FAF6EC", "#F4C430"),
+        new ThemeOption("linus-blanket", "Linus's Blanket (Cool)", "#E6EFF8", "#2563EB"),
+        new ThemeOption("snoopy-day", "Snoopy (Daytime B&W)", "#FFFFFF", "#111111"),
+        new ThemeOption("snoopy-night", "Snoopy (Nighttime B&W)", "#101010", "#F5F5F5")
+    };
+
     private bool isAuthModalOpen = false;
+    private bool isBurgerOpen = false;
+    private bool isPlayerOpen = false;
+    private string currentTheme = "charlie-brown";
+    private string? nowPlayingTitle;
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,10 +207,40 @@
         await AuthState.InitializeAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var savedTheme = await JS.InvokeAsync<string?>("EveryPageStorage.get", "everypage_peanuts_theme");
+                if (savedTheme == "bw-minimal") savedTheme = "snoopy-day";
+                if (savedTheme == "peppermint-patty") savedTheme = "charlie-brown";
+
+                if (!string.IsNullOrWhiteSpace(savedTheme) && Themes.Any(t => t.Id == savedTheme))
+                {
+                    currentTheme = savedTheme;
+                }
+                await JS.InvokeVoidAsync("EveryPageTheme.set", currentTheme);
+                StateHasChanged();
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private async Task SelectTheme(string themeId)
+    {
+        currentTheme = themeId;
+        await JS.InvokeVoidAsync("EveryPageTheme.set", currentTheme);
+    }
+
     private void HandleAuthStateChanged() => InvokeAsync(StateHasChanged);
 
     private async Task SignOut()
     {
+        isBurgerOpen = false;
         await AuthState.SignOutAsync();
         Navigation.NavigateTo("/");
     }
@@ -130,4 +253,3 @@
 
     public void Dispose() => AuthState.OnChange -= HandleAuthStateChanged;
 }
-

@@ -1,0 +1,407 @@
+@namespace EveryPageLibrary.Components
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<!-- Persistent hidden YouTube full-track audio engine -->
+<div class="fixed -left-[9999px] -top-[9999px] w-1 h-1 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div id="ep-matchbox-yt-host"></div>
+</div>
+
+@if (IsOpen)
+{
+    <div class="fixed bottom-4 right-4 z-50 w-[calc(100vw-2rem)] sm:w-[400px] bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm overflow-hidden">
+        <!-- Header Bar -->
+        <div class="flex items-center justify-between px-3 py-2 bg-[#F2EAD8] border-b-2 border-[#1C1917]">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full @(isPlaying ? "bg-emerald-500 animate-pulse" : "bg-[#57534E]") border border-[#1C1917]"></span>
+                <span class="font-mono text-[11px] font-bold uppercase tracking-wider text-[#1C1917]">
+                    YouTube Audio Player
+                </span>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-[11px] font-bold">
+                <button type="button"
+                        @onclick="() => isMinimized = !isMinimized"
+                        class="px-1.5 py-0.5 hover:bg-[#FFFDF7] rounded-sm text-[#1C1917]">
+                    @(isMinimized ? "Expand" : "Minimize")
+                </button>
+                <button type="button"
+                        @onclick="CloseDrawer"
+                        class="px-1.5 py-0.5 hover:bg-[#D93829] hover:text-[#FFFDF7] rounded-sm text-[#1C1917]">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        @if (!isMinimized)
+        {
+            <div class="p-3 space-y-3 max-h-[78vh] overflow-y-auto">
+                <!-- YouTube Link Input -->
+                <div class="space-y-1.5">
+                    <label class="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
+                        YouTube Link
+                    </label>
+                    <div class="flex gap-1.5">
+                        <input type="text"
+                               @bind="queryInput"
+                               @bind:event="oninput"
+                               @onkeydown="HandleInputKeyDown"
+                               placeholder="Insert YouTube link"
+                               class="ink-field flex-1 px-2.5 py-1.5 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border-2 border-[#1C1917] rounded-sm focus:outline-none" />
+                        <button type="button"
+                                @onclick="SubmitLink"
+                                disabled="@isLoading"
+                                class="ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm shrink-0">
+                            @(isLoading ? "..." : "Go")
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(validationMessage))
+                    {
+                        <div class="p-2 rounded-sm bg-[#F2EAD8] border-2 border-[#D93829] text-xs font-mono text-[#1C1917] leading-snug">
+                            <span class="font-bold text-[#D93829] uppercase">Invalid Input:</span> @validationMessage
+                        </div>
+                    }
+                </div>
+
+                <!-- Now Playing Card -->
+                <div class="p-2.5 rounded-sm bg-[#F2EAD8] border-2 border-[#1C1917] space-y-2">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="font-mono text-[10px] uppercase font-bold text-[#57534E]">
+                                @(isLoading ? "Loading YouTube Link..." : (currentSourceLabel ?? "Idle"))
+                            </div>
+                            <div class="font-comic text-sm font-bold text-[#1C1917] truncate">
+                                @(currentTrackTitle ?? "Insert a YouTube link above or pick a preset below")
+                            </div>
+                            @if (!string.IsNullOrEmpty(currentTrackArtist))
+                            {
+                                <div class="font-mono text-[11px] text-[#57534E] truncate">
+                                    @currentTrackArtist
+                                </div>
+                            }
+                        </div>
+                        <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase border border-[#1C1917] bg-[#FFFDF7] text-[#1C1917] rounded-sm shrink-0">
+                            Autoplay
+                        </span>
+                    </div>
+
+                    <!-- Seekable Progress Bar -->
+                    <div class="space-y-1">
+                        <input type="range"
+                               min="0"
+                               max="@Math.Max(1, durationSec)"
+                               value="@currentSec"
+                               @onchange="HandleSeek"
+                               class="w-full accent-[#1C1917] cursor-pointer h-1.5" />
+                        <div class="flex justify-between font-mono text-[10px] text-[#57534E]">
+                            <span>@FormatTime(currentSec)</span>
+                            <span>@FormatTime(durationSec)</span>
+                        </div>
+                    </div>
+
+                    <!-- Transport Controls -->
+                    <div class="flex items-center justify-between pt-1">
+                        <div class="flex items-center gap-1.5">
+                            <button type="button"
+                                    @onclick="PrevTrack"
+                                    title="Previous"
+                                    class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917] rounded-sm">
+                                |&lt;
+                            </button>
+                            <button type="button"
+                                    @onclick="TogglePlayPause"
+                                    title="Play / Pause"
+                                    class="ink-btn px-3.5 py-1 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
+                                @(isPlaying ? "Pause" : "Play")
+                            </button>
+                            <button type="button"
+                                    @onclick="NextTrack"
+                                    title="Next"
+                                    class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917] rounded-sm">
+                                &gt;|
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-mono text-[10px] font-bold text-[#57534E]">@volume%</span>
+                            <input type="range"
+                                   min="0"
+                                   max="100"
+                                   value="@volume"
+                                   @oninput="HandleVolume"
+                                   class="w-16 accent-[#1C1917] cursor-pointer h-1.5" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Reading Presets -->
+                <div>
+                    <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E] mb-1.5">
+                        Quick Reading Presets
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        @foreach (var preset in ReadingPresets)
+                        {
+                            var active = activePresetId == preset.Id;
+                            <button type="button"
+                                    @onclick="() => LoadPreset(preset)"
+                                    class="text-left px-2.5 py-1.5 rounded-sm border-2 text-xs font-comic font-bold transition-all @(active ? "border-[#1C1917] bg-[#F4C430] text-[#1C1917] shadow-[2px_2px_0px_#1C1917]" : "border-[#1C1917]/30 bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
+                                <div class="truncate">@preset.Name</div>
+                                <div class="font-mono text-[9px] font-normal @(active ? "opacity-80" : "text-[#57534E]") truncate">@preset.Tracks.Count tracks</div>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Minimized Compact Bar -->
+            <div class="px-3 py-2 flex items-center justify-between gap-2 bg-[#FFFDF7]">
+                <div class="min-w-0">
+                    <div class="font-comic text-xs font-bold text-[#1C1917] truncate">
+                        @(currentTrackTitle ?? "YouTube Audio Player")
+                    </div>
+                    <div class="font-mono text-[10px] text-[#57534E] truncate">
+                        @FormatTime(currentSec) / @FormatTime(durationSec)
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" @onclick="TogglePlayPause" class="ink-btn px-2.5 py-1 text-[11px] font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                        @(isPlaying ? "Pause" : "Play")
+                    </button>
+                    <button type="button" @onclick="NextTrack" class="ink-btn px-2 py-1 text-[11px] font-mono font-bold bg-[#FFFDF7] text-[#1C1917] rounded-sm">
+                        &gt;|
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string?> OnMoodChanged { get; set; }
+
+    public sealed record TrackItem(string Title, string Artist, string? VideoId = null, string? PlaylistId = null, string? Duration = null);
+    public sealed record ResolveResponse(string Status, string? ErrorMessage, string? SourceLabel, TrackItem[]? Items);
+    private sealed record MusicPreset(string Id, string Name, IReadOnlyList<TrackItem> Tracks);
+
+    private static readonly IReadOnlyList<MusicPreset> ReadingPresets = new[]
+    {
+        new MusicPreset("peaceful-piano", "Peaceful Piano", new[]
+        {
+            new TrackItem("Nuvole Bianche", "Ludovico Einaudi", "kcihcYEOeic"),
+            new TrackItem("River Flows in You", "Yiruma", "7maJOI3QMu0"),
+            new TrackItem("Comptine d'un autre été", "Yann Tiersen", "NvryolGa19A"),
+            new TrackItem("Clair de Lune", "Claude Debussy", "CvFH_6DNRCY")
+        }),
+        new MusicPreset("lofi-beats", "Lofi Beats", new[]
+        {
+            new TrackItem("Lofi Hip Hop Radio - Beats to Relax/Study", "Lofi Girl", "jfKfPfyJRdk"),
+            new TrackItem("Affection", "Jinsang", "dIC4j6Rn9s4"),
+            new TrackItem("Snowman", "WYS", "2OEL4P1Rz04")
+        }),
+        new MusicPreset("rainy-jazz", "Rainy Day Jazz", new[]
+        {
+            new TrackItem("Autumn Leaves", "Bill Evans Trio", "r-Z8KuwI7Gc"),
+            new TrackItem("Blue in Green", "Miles Davis", "TLDflhhdPCg"),
+            new TrackItem("In a Sentimental Mood", "Duke Ellington & John Coltrane", "sR13ECD71xU")
+        }),
+        new MusicPreset("classical-focus", "Classical Focus", new[]
+        {
+            new TrackItem("Gymnopédie No. 1", "Erik Satie", "S-Xm7s9eGxU"),
+            new TrackItem("Cello Suite No. 1 in G Major", "J.S. Bach", "1prweT95Mo0"),
+            new TrackItem("Nocturne Op. 9 No. 2", "Frédéric Chopin", "9E6b3swbnWg")
+        })
+    };
+
+    private DotNetObjectReference<AmbienceDrawer>? dotNetRef;
+    private bool initialized;
+    private bool isMinimized;
+    private bool isPlaying;
+    private bool isLoading;
+    private string activePresetId = "";
+    private string queryInput = "";
+    private string? validationMessage;
+    private string? currentSourceLabel;
+    private string? currentTrackTitle;
+    private string? currentTrackArtist;
+    private int currentSec;
+    private int durationSec;
+    private int volume = 10;
+    private List<TrackItem> queue = new();
+    private int queueIndex;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !initialized)
+        {
+            initialized = true;
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("EveryPageMusic.init", dotNetRef, volume);
+        }
+    }
+
+    private async Task LoadPreset(MusicPreset preset)
+    {
+        validationMessage = null;
+        activePresetId = preset.Id;
+        currentSourceLabel = preset.Name;
+        queue = preset.Tracks.ToList();
+        await PlayQueueIndex(0);
+    }
+
+    private async Task HandleInputKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SubmitLink();
+        }
+    }
+
+    private async Task SubmitLink()
+    {
+        var input = queryInput?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            validationMessage = "Please insert a valid YouTube link (youtube.com or youtu.be).";
+            return;
+        }
+
+        validationMessage = null;
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await JS.InvokeAsync<ResolveResponse>("EveryPageMusic.searchOrResolve", input);
+            if (response is null || response.Status != "ok" || response.Items is null || response.Items.Length == 0)
+            {
+                validationMessage = response?.ErrorMessage
+                    ?? "Only valid YouTube links (youtube.com or youtu.be) are accepted.";
+                return;
+            }
+
+            activePresetId = "";
+            currentSourceLabel = response.SourceLabel ?? "YouTube Link";
+            queue = response.Items.ToList();
+            await PlayQueueIndex(0);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PlayQueueIndex(int index)
+    {
+        if (queue.Count == 0) return;
+        queueIndex = ((index % queue.Count) + queue.Count) % queue.Count;
+        var track = queue[queueIndex];
+
+        currentTrackTitle = track.Title;
+        currentTrackArtist = track.Artist;
+        currentSec = 0;
+        durationSec = 0;
+        StateHasChanged();
+
+        await JS.InvokeVoidAsync("EveryPageMusic.playDirect", track.VideoId, track.PlaylistId, volume);
+        isPlaying = true;
+        await OnMoodChanged.InvokeAsync(track.Title);
+    }
+
+    private async Task TogglePlayPause()
+    {
+        if (queue.Count == 0)
+        {
+            validationMessage = "Insert a valid YouTube link above or pick one of the presets below first.";
+            return;
+        }
+        isPlaying = await JS.InvokeAsync<bool>("EveryPageMusic.togglePlay");
+    }
+
+    private async Task NextTrack()
+    {
+        if (queue.Count == 0) return;
+        if (queue.Count == 1 && !string.IsNullOrEmpty(queue[0].PlaylistId))
+        {
+            await JS.InvokeVoidAsync("EveryPageMusic.nextInPlaylist");
+            return;
+        }
+        await PlayQueueIndex(queueIndex + 1);
+    }
+
+    private async Task PrevTrack()
+    {
+        if (queue.Count == 0) return;
+        if (queue.Count == 1 && !string.IsNullOrEmpty(queue[0].PlaylistId))
+        {
+            await JS.InvokeVoidAsync("EveryPageMusic.prevInPlaylist");
+            return;
+        }
+        await PlayQueueIndex(queueIndex - 1);
+    }
+
+    private async Task HandleSeek(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sec))
+        {
+            currentSec = sec;
+            await JS.InvokeVoidAsync("EveryPageMusic.seekTo", sec);
+        }
+    }
+
+    private async Task HandleVolume(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var vol))
+        {
+            volume = vol;
+            await JS.InvokeVoidAsync("EveryPageMusic.setVolume", vol);
+        }
+    }
+
+    private Task CloseDrawer() => OnClose.InvokeAsync();
+
+    [JSInvokable]
+    public async Task OnPlayerProgress(int current, int duration, bool playing, string? liveTitle, string? liveArtist)
+    {
+        currentSec = current;
+        durationSec = duration;
+        isPlaying = playing;
+
+        if (!string.IsNullOrWhiteSpace(liveTitle) && liveTitle != currentTrackTitle)
+        {
+            currentTrackTitle = liveTitle;
+            if (!string.IsNullOrWhiteSpace(liveArtist))
+            {
+                currentTrackArtist = liveArtist;
+            }
+            await OnMoodChanged.InvokeAsync(liveTitle);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnTrackEnded()
+    {
+        await NextTrack();
+    }
+
+    private static string FormatTime(int totalSeconds)
+    {
+        if (totalSeconds <= 0) return "0:00";
+        var mins = totalSeconds / 60;
+        var secs = totalSeconds % 60;
+        return $"{mins}:{secs:D2}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("EveryPageMusic.dispose"); } catch { }
+        dotNetRef?.Dispose();
+    }
+}

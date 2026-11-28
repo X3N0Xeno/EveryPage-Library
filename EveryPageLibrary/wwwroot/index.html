@@ -44,6 +44,15 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="icon-192.png" />
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('everypage_theme');
+                if (saved) document.documentElement.setAttribute('data-theme', saved);
+            } catch (e) {}
+        })();
+    </script>
+    <script>(function(){var t=localStorage.getItem('everypage_peanuts_theme')||'charlie-brown';if(t==='bw-minimal')t='snoopy-day';if(t==='peppermint-patty')t='charlie-brown';document.documentElement.setAttribute('data-theme',t);document.documentElement.removeAttribute('data-mode');})();</script>
 </head>
 
 <body class="paper-sheet bg-[#FAF6EC] text-[#1C1917] font-hand selection:bg-[#F4C430]/50 selection:text-[#1C1917] antialiased overflow-x-hidden min-h-screen">
@@ -51,7 +60,7 @@
         <div class="fixed inset-0 paper-sheet flex flex-col items-center justify-center p-6 text-center select-none">
             <div class="mb-6 bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[4px_4px_0px_#1C1917] rounded-sm overflow-hidden">
                 <div class="halftone px-8 pt-6 pb-4">
-                    <img src="images/logo.png" alt="EveryPage Library" class="w-40 h-40 mx-auto object-contain" />
+                    <img src="favicon.ico" alt="EveryPage Library" class="w-40 h-40 mx-auto object-contain" />
                 </div>
                 <div class="zigzag-band zigzag-band-sm" aria-hidden="true"></div>
             </div>
@@ -161,7 +170,264 @@
                 return true;
             }
         };
+
+        window.EveryPageTheme = {
+            get: function () {
+                try {
+                    return localStorage.getItem('everypage_theme') || 'charlie-brown';
+                } catch (e) {
+                    return 'charlie-brown';
+                }
+            },
+            set: function (theme) {
+                var value = theme || 'charlie-brown';
+                document.documentElement.setAttribute('data-theme', value);
+                try { localStorage.setItem('everypage_theme', value); } catch (e) {}
+                return value;
+            }
+        };
+
+        window.EveryPageAmbience = (function () {
+            var ctx = null;
+            var masterGain = null;
+            var activeMood = null;
+            var volume = 0.45;
+            var cleanupFns = [];
+            var timers = [];
+
+            function ensureContext() {
+                if (!ctx) {
+                    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    ctx = new AudioCtx();
+                    masterGain = ctx.createGain();
+                    masterGain.gain.value = volume;
+                    masterGain.connect(ctx.destination);
+                }
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+            }
+
+            function createNoiseBuffer(seconds, brown) {
+                var sampleRate = ctx.sampleRate;
+                var length = Math.floor(sampleRate * seconds);
+                var buffer = ctx.createBuffer(1, length, sampleRate);
+                var data = buffer.getChannelData(0);
+                var lastOut = 0;
+                for (var i = 0; i < length; i++) {
+                    var white = Math.random() * 2 - 1;
+                    if (brown) {
+                        lastOut = (lastOut + 0.02 * white) / 1.02;
+                        data[i] = lastOut * 3.2;
+                    } else {
+                        // soft pink-ish approximation
+                        lastOut = 0.94 * lastOut + 0.06 * white;
+                        data[i] = (lastOut * 2.4 + white * 0.18) * 0.5;
+                    }
+                }
+                return buffer;
+            }
+
+            function stopCurrent() {
+                timers.forEach(function (id) { clearInterval(id); clearTimeout(id); });
+                timers = [];
+                cleanupFns.forEach(function (fn) { try { fn(); } catch (e) {} });
+                cleanupFns = [];
+                activeMood = null;
+            }
+
+            function startFireplace() {
+                var rumble = ctx.createBufferSource();
+                rumble.buffer = createNoiseBuffer(4, true);
+                rumble.loop = true;
+
+                var lowpass = ctx.createBiquadFilter();
+                lowpass.type = 'lowpass';
+                lowpass.frequency.value = 260;
+
+                var rumbleGain = ctx.createGain();
+                rumbleGain.gain.value = 0.65;
+
+                rumble.connect(lowpass);
+                lowpass.connect(rumbleGain);
+                rumbleGain.connect(masterGain);
+                rumble.start();
+                cleanupFns.push(function () { rumble.stop(); rumble.disconnect(); });
+
+                // Warm crackle pops
+                var crackleTimer = setInterval(function () {
+                    if (!ctx || activeMood !== 'fireplace') return;
+                    if (Math.random() > 0.68) return;
+                    var now = ctx.currentTime;
+                    var popBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.04), ctx.sampleRate);
+                    var ch = popBuf.getChannelData(0);
+                    for (var i = 0; i < ch.length; i++) {
+                        ch[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ch.length * 0.22));
+                    }
+                    var src = ctx.createBufferSource();
+                    src.buffer = popBuf;
+
+                    var bp = ctx.createBiquadFilter();
+                    bp.type = 'bandpass';
+                    bp.frequency.value = 1400 + Math.random() * 2600;
+                    bp.Q.value = 1.6;
+
+                    var g = ctx.createGain();
+                    g.gain.setValueAtTime(0.06 + Math.random() * 0.18, now);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+                    src.connect(bp);
+                    bp.connect(g);
+                    g.connect(masterGain);
+                    src.start(now);
+                }, 140);
+                timers.push(crackleTimer);
+            }
+
+            function startRainforest() {
+                var rain = ctx.createBufferSource();
+                rain.buffer = createNoiseBuffer(5, false);
+                rain.loop = true;
+
+                var bp = ctx.createBiquadFilter();
+                bp.type = 'bandpass';
+                bp.frequency.value = 950;
+                bp.Q.value = 0.55;
+
+                var rainGain = ctx.createGain();
+                rainGain.gain.value = 0.55;
+
+                rain.connect(bp);
+                bp.connect(rainGain);
+                rainGain.connect(masterGain);
+                rain.start();
+                cleanupFns.push(function () { rain.stop(); rain.disconnect(); });
+
+                // Gentle distant forest bird chirps
+                var birdTimer = setInterval(function () {
+                    if (!ctx || activeMood !== 'rainforest') return;
+                    if (Math.random() > 0.55) return;
+                    var now = ctx.currentTime;
+                    var osc = ctx.createOscillator();
+                    var g = ctx.createGain();
+                    var baseFreq = 1800 + Math.random() * 1400;
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(baseFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * (1.18 + Math.random() * 0.2), now + 0.09);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.92, now + 0.18);
+
+                    g.gain.setValueAtTime(0.001, now);
+                    g.gain.linearRampToValueAtTime(0.045, now + 0.03);
+                    g.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
+
+                    osc.connect(g);
+                    g.connect(masterGain);
+                    osc.start(now);
+                    osc.stop(now + 0.24);
+                }, 1800);
+                timers.push(birdTimer);
+            }
+
+            function startJazz() {
+                // Soft vinyl warmth
+                var vinyl = ctx.createBufferSource();
+                vinyl.buffer = createNoiseBuffer(3, false);
+                vinyl.loop = true;
+                var hp = ctx.createBiquadFilter();
+                hp.type = 'highpass';
+                hp.frequency.value = 2800;
+                var vg = ctx.createGain();
+                vg.gain.value = 0.035;
+                vinyl.connect(hp);
+                hp.connect(vg);
+                vg.connect(masterGain);
+                vinyl.start();
+                cleanupFns.push(function () { vinyl.stop(); vinyl.disconnect(); });
+
+                // Warm Rhodes-style II-V-I-VI jazz progression
+                var chords = [
+                    [146.83, 261.63, 329.63, 349.23, 440.00], // Dm9
+                    [196.00, 246.94, 329.63, 349.23, 440.00], // G13
+                    [130.81, 246.94, 293.66, 329.63, 392.00], // Cmaj9
+                    [110.00, 261.63, 311.13, 392.00, 466.16]  // A7alt
+                ];
+                var step = 0;
+
+                function playChord() {
+                    if (!ctx || activeMood !== 'jazz') return;
+                    var notes = chords[step % chords.length];
+                    step++;
+                    var now = ctx.currentTime;
+
+                    notes.forEach(function (freq, idx) {
+                        var osc = ctx.createOscillator();
+                        var lp = ctx.createBiquadFilter();
+                        var g = ctx.createGain();
+
+                        osc.type = idx === 0 ? 'sine' : 'triangle';
+                        osc.frequency.setValueAtTime(freq, now);
+
+                        lp.type = 'lowpass';
+                        lp.frequency.value = idx === 0 ? 420 : 950;
+
+                        var peak = idx === 0 ? 0.16 : 0.065;
+                        var startOffset = idx * 0.04;
+                        g.gain.setValueAtTime(0.0005, now + startOffset);
+                        g.gain.linearRampToValueAtTime(peak, now + startOffset + 0.18);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + 3.6);
+
+                        osc.connect(lp);
+                        lp.connect(g);
+                        g.connect(masterGain);
+                        osc.start(now + startOffset);
+                        osc.stop(now + 3.7);
+                    });
+                }
+
+                playChord();
+                var chordTimer = setInterval(playChord, 3400);
+                timers.push(chordTimer);
+            }
+
+            return {
+                play: function (mood) {
+                    ensureContext();
+                    if (activeMood === mood) {
+                        stopCurrent();
+                        return null;
+                    }
+                    stopCurrent();
+                    activeMood = mood;
+                    if (mood === 'fireplace') startFireplace();
+                    else if (mood === 'rainforest') startRainforest();
+                    else if (mood === 'jazz') startJazz();
+                    return activeMood;
+                },
+                stop: function () {
+                    stopCurrent();
+                    return null;
+                },
+                setVolume: function (val) {
+                    volume = Math.max(0, Math.min(1, Number(val)));
+                    if (masterGain && ctx) {
+                        masterGain.gain.setTargetAtTime(volume, ctx.currentTime, 0.05);
+                    }
+                },
+                getMood: function () { return activeMood; },
+                getVolume: function () { return volume; }
+            };
+        })();
+
+        window.EveryPageStorage = {
+            get: function (key) {
+                try { return localStorage.getItem(key); } catch (e) { return null; }
+            },
+            set: function (key, value) {
+                try { localStorage.setItem(key, value); } catch (e) {}
+            }
+        };
     </script>
+    <script src="js/ambience.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 
