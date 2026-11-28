@@ -1,5 +1,4 @@
 @inherits LayoutComponentBase
-@using EveryPageLibrary.Models
 @using EveryPageLibrary.Services
 @using EveryPageLibrary.Components
 @inject AuthStateService AuthState
@@ -9,66 +8,42 @@
 @implements IDisposable
 
 <div class="min-h-screen paper-sheet bg-[#FAF6EC] text-[#1C1917] flex flex-col font-hand selection:bg-[#F4C430]/50 selection:text-[#1C1917]">
-    <!-- Top Masthead: Logo (Left) | Centered Search Bar (Center) | Now Playing Pill (Right) -->
     <header class="sticky top-0 z-40 bg-[#FFFDF7]/95 backdrop-blur-sm border-b-2 border-[#1C1917]">
         <div class="w-full px-3 sm:px-5">
             <div class="grid grid-cols-[auto_1fr_auto] items-center h-14 sm:h-16 gap-3 sm:gap-5">
-                <!-- Left Column: Brand Masthead -->
                 <div class="flex items-center justify-start min-w-0">
-                    <a href="/" class="flex items-center gap-2.5 group min-w-0">
-                        <img src="logo.png"
-                             alt="EveryPage Library"
-                             class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 object-contain rounded-md group-hover:-translate-y-0.5 transition-transform" />
+                    <a href="" @onclick="ResetToHome" @onclick:preventDefault="true" class="flex items-center gap-2.5 group min-w-0">
+                        <img src="logo.png" alt="EveryPage Library" class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 object-contain rounded-md group-hover:-translate-y-0.5 transition-transform" />
                         <div class="hidden sm:block min-w-0">
-                            <span class="font-comic text-lg sm:text-xl font-bold text-[#1C1917] group-hover:text-[#D93829] transition-colors block leading-none truncate">
-                                EveryPage Library
-                            </span>
-                            <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-[#57534E] block mt-0.5 truncate">
-                                Open Paper &amp; Ink Reading Hall
-                            </span>
+                            <span class="font-comic text-lg sm:text-xl font-bold text-[#1C1917] group-hover:text-[#D93829] transition-colors block leading-none truncate">EveryPage Library</span>
+                            <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-[#57534E] block mt-0.5 truncate">Open Paper &amp; Ink Reading Hall</span>
                         </div>
                     </a>
                 </div>
 
-                <!-- Center Column: YouTube-Style Centered Catalog Search Bar -->
                 <div class="flex items-center justify-center w-full max-w-2xl mx-auto">
                     <form @onsubmit="HandleHeaderSearch" @onsubmit:preventDefault class="flex items-center w-full gap-1.5">
                         <div class="relative flex-1 flex items-center">
                             <svg class="w-4 h-4 text-[#57534E] absolute left-3 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text"
-                                   @bind="CatalogState.SearchQuery"
-                                   @bind:event="oninput"
+                            <input type="text" @bind="CatalogState.SearchQuery" @bind:event="oninput"
                                    placeholder="Search titles, authors, Standard Ebooks, Gutenberg, Open Library..."
                                    aria-label="Search library catalog"
                                    class="ink-field w-full pl-9 pr-8 py-1.5 sm:py-2 text-xs sm:text-sm font-mono bg-[#FFFDF7] text-[#1C1917] border-2 border-[#1C1917] rounded-sm focus:outline-none" />
                             @if (!string.IsNullOrWhiteSpace(CatalogState.SearchQuery))
                             {
-                                <button type="button"
-                                        @onclick="HandleClearHeaderSearch"
-                                        title="Clear search"
-                                        class="absolute right-2.5 text-xs font-mono font-bold text-[#57534E] hover:text-[#1C1917]">
-                                    &#x2715;
-                                </button>
+                                <button type="button" @onclick="HandleClearHeaderSearch" title="Clear search" class="absolute right-2.5 text-xs font-mono font-bold text-[#57534E] hover:text-[#1C1917]">&#x2715;</button>
                             }
                         </div>
-                        <button type="submit"
-                                @onclick="HandleHeaderSearch"
-                                class="ink-btn px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm shrink-0">
-                            Search
-                        </button>
+                        <button type="submit" class="ink-btn px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm shrink-0">Search</button>
                     </form>
                 </div>
 
-                <!-- Right Column: Now Playing Status Pill -->
                 <div class="flex items-center justify-end gap-2 min-w-0">
                     @if (!string.IsNullOrEmpty(nowPlayingTitle))
                     {
-                        <button type="button"
-                                @onclick="HandleNowPlayingClick"
-                                title="@(isRightSidebarOpen ? (isAudioPlaying ? "Pause Audio" : "Resume Audio") : "Open Mood & Audio Sidebar")"
+                        <button type="button" @onclick="HandleNowPlayingClick"
                                 class="inline-flex items-center gap-2 px-2.5 py-1.5 text-xs font-mono font-bold bg-[#F2EAD8] hover:bg-[#F4C430] text-[#1C1917] border-2 border-[#1C1917] shadow-[2px_2px_0px_#1C1917] rounded-sm max-w-[140px] sm:max-w-[220px] truncate transition-colors">
                             <span class="w-2 h-2 rounded-full @(isAudioPlaying ? "bg-emerald-500 animate-pulse" : "bg-[#57534E]") shrink-0"></span>
                             <span class="truncate">@nowPlayingTitle</span>
@@ -77,8 +52,7 @@
                     else
                     {
                         <span class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E] border border-dashed border-[#1C1917]/30 rounded-sm select-none">
-                            <span class="w-1.5 h-1.5 rounded-full bg-[#57534E]/60"></span>
-                            <span>Audio Idle</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#57534E]/60"></span><span>Audio Idle</span>
                         </span>
                     }
                 </div>
@@ -86,316 +60,30 @@
         </div>
     </header>
 
-    <!-- 3-Panel Comic / Newspaper Spread Workspace -->
     <div class="flex-1 flex items-stretch relative overflow-x-clip">
         @if (isLeftSidebarOpen || isRightSidebarOpen)
         {
-            <div class="fixed inset-0 top-14 bg-black/40 z-20 lg:hidden"
-                 @onclick="CloseMobileSidebars"></div>
+            <div class="fixed inset-0 top-14 bg-black/40 z-20 lg:hidden" @onclick="CloseMobileSidebars"></div>
         }
 
-        <!-- LEFT SIDEBAR: Navigation, Live Generated Card Catalog & Library Card Account -->
         <div class="relative flex shrink-0 z-30">
             <aside class="@(isLeftSidebarOpen
                     ? "fixed lg:sticky top-14 sm:top-16 left-0 w-80 xl:w-[340px] h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] translate-x-0 border-r-2 border-[#1C1917] bg-[#FFFDF7] shadow-[4px_0_0_#1C1917] lg:shadow-none"
                     : "fixed lg:static top-14 sm:top-16 left-0 w-80 h-[calc(100vh-3.5rem)] -translate-x-full lg:w-0 lg:overflow-hidden lg:border-0") transition-all duration-200 flex flex-col">
-                <div class="p-3.5 space-y-4 overflow-y-auto flex-1 broadsheet-sidebar">
-                    <!-- Navigation Tabs -->
-                    @if (AuthState.IsAuditor)
-                    {
-                        <div class="grid grid-cols-2 gap-1.5 font-comic text-xs font-bold uppercase">
-                            <NavLink href="" Match="NavLinkMatch.All"
-                                     class="text-center px-2.5 py-2 rounded-sm border-2 border-[#1C1917]/30 bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F2EAD8] transition-all"
-                                     ActiveClass="!border-[#1C1917] !bg-[#F4C430] !text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">
-                                Browse Books
-                            </NavLink>
-
-                            <NavLink href="audit-sanctum"
-                                     class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-sm border-2 border-[#1C1917]/30 bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F2EAD8] transition-all"
-                                     ActiveClass="!border-[#1C1917] !bg-[#F4C430] !text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">
-                                <span>Site Audit</span>
-                                <span class="w-2 h-2 rounded-full bg-[#D93829] border border-[#1C1917]"></span>
-                            </NavLink>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="font-comic text-xs font-bold uppercase">
-                            <NavLink href="" Match="NavLinkMatch.All"
-                                     class="block text-center px-2.5 py-2 rounded-sm border-2 border-[#1C1917]/30 bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F2EAD8] transition-all"
-                                     ActiveClass="!border-[#1C1917] !bg-[#F4C430] !text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">
-                                Browse Books
-                            </NavLink>
-                        </div>
-                    }
-
-                    <!-- THE CARD CATALOG + LIVE GENERATED PHYSICAL INDEX CARD -->
-                    <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 space-y-3">
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="font-comic text-base font-bold text-[#1C1917]">
-                                The Card Catalog
-                            </span>
-                            <button type="button"
-                                    @onclick="HandleUploadClick"
-                                    class="ink-btn inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-comic font-bold uppercase bg-[#D93829] hover:bg-[#b82b1e] text-[#FFFDF7] rounded-sm">
-                                <span>+ Upload PDF</span>
-                            </button>
-                        </div>
-
-                        <!-- Live-Generated Physical Library Index Card -->
-                        <div class="relative bg-[#FAF6EC] border-2 border-[#1C1917] shadow-[3px_3px_0px_#1C1917] rounded-sm overflow-hidden">
-                            <!-- Top Red Library Ruling Line -->
-                            <div class="px-3 py-1.5 border-b-2 border-[#D93829] bg-[#FFFDF7] flex items-center justify-between font-mono text-[9px] font-bold uppercase tracking-wider">
-                                <span class="text-[#D93829]">Call No. @GeneratedCallNumber</span>
-                                <span class="text-[#57534E]">@(CatalogState.IsLoading ? "Indexing..." : $"{CatalogState.TotalOnShelf} Cards")</span>
-                            </div>
-
-                            <!-- Ruled Index Card Body -->
-                            <div class="px-3 py-2.5 space-y-1.5 bg-[linear-gradient(transparent_21px,rgba(28,25,23,0.10)_22px)] bg-[length:100%_22px]">
-                                <div class="font-mono text-[9px] uppercase tracking-wider text-[#57534E]">
-                                    Subject Heading
-                                </div>
-                                <div class="font-serif text-sm font-bold text-[#1C1917] leading-snug line-clamp-2">
-                                    @(string.IsNullOrWhiteSpace(CatalogState.SearchQuery)
-                                        ? (CatalogState.SelectedCategory == "All" ? "General Collection — All Domains" : CatalogState.SelectedCategory)
-                                        : $"“{CatalogState.SearchQuery.Trim()}”")
-                                </div>
-
-                                <div class="flex flex-wrap gap-1 pt-1">
-                                    <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase bg-[#F4C430] text-[#1C1917] border border-[#1C1917] rounded-sm">
-                                        @CatalogState.SelectedCategory
-                                    </span>
-                                    @if (CatalogState.SelectedForm != "All")
-                                    {
-                                        <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedForm</span>
-                                    }
-                                    @if (CatalogState.SelectedFactuality != "All")
-                                    {
-                                        <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedFactuality</span>
-                                    }
-                                    @if (CatalogState.SelectedAudience != "All")
-                                    {
-                                        <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedAudience</span>
-                                    }
-                                    @if (CatalogState.SelectedEra != "All")
-                                    {
-                                        <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedEra</span>
-                                    }
-                                    @if (CatalogState.SelectedRights != "All")
-                                    {
-                                        <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedRights</span>
-                                    }
-                                </div>
-                            </div>
-
-                            <!-- Bottom Catalog Drawer Rod Punch Hole -->
-                            <div class="px-3 py-1.5 bg-[#F2EAD8] border-t border-[#1C1917]/25 flex items-center justify-between">
-                                <span class="font-mono text-[9px] text-[#57534E] uppercase">EveryPage Drawer</span>
-                                <span class="w-3 h-3 rounded-full bg-[#FAF6EC] border-2 border-[#1C1917] inline-block" title="Catalog drawer rod hole"></span>
-                                @if (HasActiveFilters)
-                                {
-                                    <button type="button"
-                                            @onclick="ResetCatalogFilters"
-                                            class="font-mono text-[9px] font-bold uppercase text-[#D93829] hover:underline">
-                                        Reset
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="font-mono text-[9px] text-[#57534E] uppercase">Active</span>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Domain Chips (Compact Scrollable Wrap inside Card Catalog) -->
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
-                                    Domains
-                                </span>
-                                <button type="button"
-                                        @onclick="() => showAllDomains = !showAllDomains"
-                                        class="font-mono text-[10px] font-bold text-[#D93829] hover:underline">
-                                    @(showAllDomains ? "Show Less ▲" : $"All ({BookGenres.Filters.Count}) ▼")
-                                </button>
-                            </div>
-                            <div class="flex flex-wrap gap-1.5">
-                                @foreach (var domain in VisibleDomains)
-                                {
-                                    var isSelected = CatalogState.SelectedCategory == domain;
-                                    <button type="button"
-                                            @onclick="() => SelectDomain(domain)"
-                                            class="px-2 py-1 text-[10px] font-mono font-bold rounded-full border border-[#1C1917] transition-all @(isSelected ? "bg-[#1C1917] text-[#FFFDF7] shadow-[1px_1px_0px_#F4C430]" : "bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
-                                        @domain
-                                    </button>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- 5 Facet Dropdowns -->
-                        <div class="grid grid-cols-1 gap-2 pt-1">
-                            <div>
-                                <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Form &amp; Structure</label>
-                                <select @bind="CatalogState.SelectedForm"
-                                        @bind:after="CatalogState.NotifyFacetChanged"
-                                        class="ink-field ink-select w-full text-xs font-mono py-1.5 pl-2 rounded-sm">
-                                    <option value="All">All Forms</option>
-                                    @foreach (var tag in BookGenres.FormTags)
-                                    {
-                                        <option value="@tag">@tag</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <div>
-                                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Factuality</label>
-                                    <select @bind="CatalogState.SelectedFactuality"
-                                            @bind:after="CatalogState.NotifyFacetChanged"
-                                            class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
-                                        <option value="All">All</option>
-                                        @foreach (var tag in BookGenres.FactualityTags)
-                                        {
-                                            <option value="@tag">@tag</option>
-                                        }
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Audience</label>
-                                    <select @bind="CatalogState.SelectedAudience"
-                                            @bind:after="CatalogState.NotifyFacetChanged"
-                                            class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
-                                        <option value="All">All</option>
-                                        @foreach (var tag in BookGenres.AudienceTags)
-                                        {
-                                            <option value="@tag">@tag</option>
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <div>
-                                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Era</label>
-                                    <select @bind="CatalogState.SelectedEra"
-                                            @bind:after="CatalogState.NotifyFacetChanged"
-                                            class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
-                                        <option value="All">All Eras</option>
-                                        @foreach (var tag in BookGenres.EraTags)
-                                        {
-                                            <option value="@tag">@tag</option>
-                                        }
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Access</label>
-                                    <select @bind="CatalogState.SelectedRights"
-                                            @bind:after="CatalogState.NotifyFacetChanged"
-                                            class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
-                                        <option value="All">All Tiers</option>
-                                        @foreach (var tag in BookGenres.RightsTags)
-                                        {
-                                            <option value="@tag">@tag</option>
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- LIBRARY CARD ACCOUNT + EDIT USERNAME / PASSWORD -->
-                    <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
-                                Library Card
-                            </span>
-                            @if (AuthState.IsAuthenticated)
-                            {
-                                <button type="button"
-                                        @onclick="ToggleEditProfile"
-                                        class="font-mono text-[10px] font-bold uppercase text-[#D93829] hover:underline">
-                                    @(isEditingProfile ? "Cancel Edit" : "Edit Card")
-                                </button>
-                            }
-                        </div>
-
-                        @if (AuthState.IsAuthenticated)
-                        {
-                            <div class="p-2.5 rounded-sm bg-[#F2EAD8] border-2 border-[#1C1917] space-y-2">
-                                <div class="flex items-center justify-between gap-2 min-w-0">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="w-2.5 h-2.5 rounded-full @(AuthState.IsAuditor ? "bg-[#D93829]" : "bg-[#F4C430]") border border-[#1C1917] shrink-0"></span>
-                                        <span class="text-xs font-bold text-[#1C1917] truncate">@AuthState.CurrentUser?.Username</span>
-                                    </div>
-                                    <span class="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-sm border border-[#1C1917] bg-[#FFFDF7] text-[#1C1917] shrink-0">
-                                        @(AuthState.IsAuditor ? "Auditor" : "Contributor")
-                                    </span>
-                                </div>
-
-                                @if (isEditingProfile)
-                                {
-                                    <div class="pt-2 border-t border-dashed border-[#1C1917]/30 space-y-2">
-                                        <div>
-                                            <label class="block font-mono text-[9px] font-bold uppercase text-[#57534E] mb-0.5">Card Name</label>
-                                            <input type="text"
-                                                   @bind="editUsername"
-                                                   placeholder="New username"
-                                                   class="ink-field w-full px-2 py-1 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm" />
-                                        </div>
-                                        <div>
-                                            <label class="block font-mono text-[9px] font-bold uppercase text-[#57534E] mb-0.5">New Password (Optional)</label>
-                                            <input type="password"
-                                                   @bind="editPassword"
-                                                   placeholder="Leave blank to keep"
-                                                   class="ink-field w-full px-2 py-1 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm" />
-                                        </div>
-                                        @if (!string.IsNullOrWhiteSpace(profileStatusMessage))
-                                        {
-                                            <div class="p-1.5 text-[10px] font-mono font-bold rounded-sm border border-[#1C1917] @(profileStatusSuccess ? "bg-[#F4C430]/50 text-[#1C1917]" : "bg-[#D93829] text-[#FFFDF7]")">
-                                                @profileStatusMessage
-                                            </div>
-                                        }
-                                        <button type="button"
-                                                @onclick="SaveProfileChanges"
-                                                disabled="@isSavingProfile"
-                                                class="w-full ink-btn px-2.5 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
-                                            @(isSavingProfile ? "Saving..." : "Save Card Changes")
-                                        </button>
-                                    </div>
-                                }
-                            </div>
-
-                            <button type="button"
-                                    @onclick="SignOut"
-                                    class="w-full ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917] rounded-sm">
-                                Sign Out
-                            </button>
-                        }
-                        else
-                        {
-                            <button type="button"
-                                    @onclick="() => isAuthModalOpen = true"
-                                    class="w-full ink-btn px-3 py-2 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
-                                Library Card Sign In
-                            </button>
-                        }
-                    </div>
-                </div>
+                <CatalogSidebar @ref="catalogSidebar"
+                                OnUploadClick="HandleUploadClick"
+                                OnResetFilters="ResetCatalogFilters"
+                                OnSelectDomain="SelectDomain"
+                                OnSignOut="SignOut"
+                                OnOpenAuthModal="() => isAuthModalOpen = true" />
             </aside>
 
-            <!-- Single Persistent Left Bookmark Tab -->
-            <button type="button"
-                    @onclick="() => isLeftSidebarOpen = !isLeftSidebarOpen"
-                    title="@(isLeftSidebarOpen ? "Hide Catalog & Account Sidebar" : "Show Catalog & Account Sidebar")"
+            <button type="button" @onclick="() => isLeftSidebarOpen = !isLeftSidebarOpen"
                     class="fixed top-1/2 -translate-y-1/2 z-50 h-28 px-1.5 flex items-center justify-center gap-1 bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] border-2 border-l-0 border-[#1C1917] shadow-[3px_3px_0px_#1C1917] rounded-r-sm font-mono text-[10px] font-bold uppercase tracking-wider transition-all duration-200 [writing-mode:vertical-rl] @(isLeftSidebarOpen ? "left-80 xl:left-[340px]" : "left-0")">
-                <span>@(isLeftSidebarOpen ? "◄" : "►")</span>
-                <span>Catalog</span>
+                <span>@(isLeftSidebarOpen ? "◄" : "►")</span><span>Catalog</span>
             </button>
         </div>
 
-        <!-- CENTER COMIC / NEWSPAPER SPREAD -->
         <main class="flex-1 min-w-0 flex flex-col relative">
             <div class="flex-1 w-full px-2 sm:px-4 lg:px-6 py-3 sm:py-5">
                 <div class="w-full h-full bg-[#FFFDF7]/60 border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm comic-spread-frame overflow-x-clip">
@@ -405,14 +93,8 @@
 
             <footer class="border-t-2 border-[#1C1917] bg-[#FFFDF7] py-6 mt-6 text-center select-none">
                 <div class="w-full px-4 sm:px-6">
-                    <div class="sacred-divider max-w-md mx-auto my-3">
-                        <div class="sacred-divider-diamond"></div>
-                    </div>
-
-                    <p class="font-comic text-lg sm:text-xl font-bold text-[#1C1917] mb-1.5">
-                        "Everything Humanity Has Written, Open to Everyone."
-                    </p>
-
+                    <div class="sacred-divider max-w-md mx-auto my-3"><div class="sacred-divider-diamond"></div></div>
+                    <p class="font-comic text-lg sm:text-xl font-bold text-[#1C1917] mb-1.5">"Everything Humanity Has Written, Open to Everyone."</p>
                     <div class="text-xs font-mono text-[#57534E] space-y-1">
                         <p>EveryPage Library &bull; Community PDFs, Internet Archive, Open Library, Project Gutenberg, Wikisource &amp; DOAB</p>
                         <p>Typed up fresh on warm paper &mdash; free to read and download without an account</p>
@@ -421,202 +103,106 @@
             </footer>
         </main>
 
-        <!-- RIGHT SIDEBAR: Unified Atmosphere & Mood Panel (YouTube Audio + 4 Paper Themes) -->
         <div class="relative flex shrink-0 z-30">
-            <!-- Single Persistent Right Bookmark Tab -->
-            <button type="button"
-                    @onclick="() => isRightSidebarOpen = !isRightSidebarOpen"
-                    title="@(isRightSidebarOpen ? "Hide Mood & Audio Sidebar" : "Show Mood & Audio Sidebar")"
+            <button type="button" @onclick="() => isRightSidebarOpen = !isRightSidebarOpen"
                     class="fixed top-1/2 -translate-y-1/2 z-50 h-28 px-1.5 flex items-center justify-center gap-1.5 bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] border-2 border-r-0 border-[#1C1917] shadow-[-3px_3px_0px_#1C1917] rounded-l-sm font-mono text-[10px] font-bold uppercase tracking-wider transition-all duration-200 [writing-mode:vertical-rl] @(isRightSidebarOpen ? "right-80 xl:right-[340px]" : "right-0")">
-                @if (isAudioPlaying)
-                {
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                }
-                <span>@(isRightSidebarOpen ? "►" : "◄")</span>
-                <span>Mood</span>
+                @if (isAudioPlaying) { <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> }
+                <span>@(isRightSidebarOpen ? "►" : "◄")</span><span>Mood</span>
             </button>
 
             <aside class="@(isRightSidebarOpen
                     ? "fixed lg:sticky top-14 sm:top-16 right-0 w-80 xl:w-[340px] h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] translate-x-0 border-l-2 border-[#1C1917] bg-[#FFFDF7] shadow-[-4px_0_0_#1C1917] lg:shadow-none"
                     : "fixed lg:static top-14 sm:top-16 right-0 w-80 h-[calc(100vh-3.5rem)] translate-x-full lg:w-0 lg:overflow-hidden lg:border-0") transition-all duration-200 flex flex-col">
-                <div class="p-3.5 space-y-4 overflow-y-auto flex-1 broadsheet-sidebar">
-                    <!-- Section 1: Reading Ambience Audio -->
-                    <div class="space-y-2.5">
-                        <div class="flex items-center justify-between pb-1.5 border-b-2 border-[#1C1917]">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full @(isAudioPlaying ? "bg-emerald-500 animate-pulse" : "bg-[#57534E]") border border-[#1C1917]"></span>
-                                <span class="font-comic text-sm font-bold text-[#1C1917]">
-                                    Reading Soundtrack
-                                </span>
-                            </div>
-                            <span class="font-mono text-[10px] uppercase text-[#57534E]">
-                                YouTube
-                            </span>
-                        </div>
-
-                        <AmbienceDrawer @ref="audioDrawer"
-                                        OnMoodChanged="title => nowPlayingTitle = title"
-                                        OnPlayStateChanged="playing => isAudioPlaying = playing" />
-                    </div>
-
-                    <!-- Section 2: 4 Paper Themes -->
-                    <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-comic text-sm font-bold text-[#1C1917]">
-                                Paper Theme
-                            </span>
-                            <span class="font-mono text-[10px] uppercase text-[#57534E]">
-                                4 Editions
-                            </span>
-                        </div>
-                        <div class="space-y-1.5">
-                            @foreach (var theme in Themes)
-                            {
-                                var active = currentTheme == theme.Id;
-                                <button type="button"
-                                        @onclick="() => SelectTheme(theme.Id)"
-                                        class="w-full text-left px-2.5 py-2 rounded-sm border-2 text-xs font-comic font-bold flex items-center justify-between transition-all @(active ? "border-[#1C1917] bg-[#F4C430] text-[#1C1917] shadow-[2px_2px_0px_#1C1917]" : "border-[#1C1917]/25 bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
-                                    <span class="truncate">@theme.Label</span>
-                                    <span class="flex items-center gap-1 shrink-0">
-                                        <span class="w-3 h-3 rounded-full border border-[#1C1917]" style="background:@theme.SwatchPrimary"></span>
-                                        <span class="w-3 h-3 rounded-full border border-[#1C1917]" style="background:@theme.SwatchAccent"></span>
-                                    </span>
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
+                <MoodSidebar @ref="moodSidebar"
+                             IsAudioPlaying="isAudioPlaying"
+                             CurrentTheme="@currentTheme"
+                             OnMoodChanged="title => nowPlayingTitle = title"
+                             OnPlayStateChanged="playing => isAudioPlaying = playing"
+                             OnSelectTheme="SelectTheme" />
             </aside>
         </div>
     </div>
 </div>
 
-<AuthModal IsOpen="isAuthModalOpen"
-           OnClose="() => isAuthModalOpen = false"
-           OnAuthenticated="HandleAuthenticated" />
+<AuthModal IsOpen="isAuthModalOpen" OnClose="() => isAuthModalOpen = false" OnAuthenticated="() => { isAuthModalOpen = false; StateHasChanged(); }" />
+
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 h-12 bg-[#1C1917] text-[#F5F0E1] border-t-2 border-[#1C1917] grid grid-cols-3 font-mono text-xs font-bold uppercase tracking-wider select-none">
+    <button type="button" @onclick="MobileToggleCatalog" class="flex items-center justify-center gap-1.5 border-r border-[#44403C] transition-colors @(isLeftSidebarOpen ? "bg-[#E4C438] text-[#1C1917]" : "active:bg-[#292524]")">
+        <span>&#9776;</span><span>Catalog</span>
+    </button>
+    <button type="button" @onclick="MobileShowBooks" class="flex items-center justify-center border-r border-[#44403C] transition-colors @((!isLeftSidebarOpen && !isRightSidebarOpen) ? "bg-[#E4C438] text-[#1C1917]" : "active:bg-[#292524]")">
+        <span>Books</span>
+    </button>
+    <button type="button" @onclick="MobileToggleMood" class="flex items-center justify-center gap-1.5 transition-colors @(isRightSidebarOpen ? "bg-[#E4C438] text-[#1C1917]" : "active:bg-[#292524]")">
+        <span>&#9834;</span><span>Mood</span>
+    </button>
+</nav>
 
 @code {
-    private sealed record ThemeOption(string Id, string Label, string SwatchPrimary, string SwatchAccent);
-
-    private static readonly IReadOnlyList<ThemeOption> Themes = new[]
-    {
-        new ThemeOption("charlie-brown", "Charlie Brown (Classic)", "#FAF6EC", "#F4C430"),
-        new ThemeOption("linus-blanket", "Linus's Blanket (Cool)", "#E6EFF8", "#2563EB"),
-        new ThemeOption("snoopy-day", "Snoopy (Daytime B&W)", "#FFFFFF", "#111111"),
-        new ThemeOption("snoopy-night", "Snoopy (Nighttime B&W)", "#101010", "#F5F5F5")
-    };
-
-    private AmbienceDrawer? audioDrawer;
-    private bool isAuthModalOpen = false;
+    private CatalogSidebar? catalogSidebar;
+    private MoodSidebar? moodSidebar;
+    private bool isAuthModalOpen;
     private bool isLeftSidebarOpen = true;
     private bool isRightSidebarOpen = true;
-    private bool isAudioPlaying = false;
+    private bool isAudioPlaying;
     private string currentTheme = "charlie-brown";
     private string? nowPlayingTitle;
 
-    // Catalog sidebar UI state
-    private bool showAllDomains = false;
-    private IEnumerable<string> VisibleDomains =>
-        showAllDomains ? BookGenres.Filters : BookGenres.Filters.Take(7);
-
-    private bool HasActiveFilters =>
-        !string.IsNullOrWhiteSpace(CatalogState.SearchQuery) ||
-        CatalogState.SelectedCategory != "All" ||
-        CatalogState.SelectedForm != "All" ||
-        CatalogState.SelectedFactuality != "All" ||
-        CatalogState.SelectedAudience != "All" ||
-        CatalogState.SelectedEra != "All" ||
-        CatalogState.SelectedRights != "All";
-
-    private string GeneratedCallNumber
-    {
-        get
-        {
-            var catCode = CatalogState.SelectedCategory == "All"
-                ? "ALL"
-                : new string(CatalogState.SelectedCategory.Where(char.IsLetter).Take(3).ToArray()).ToUpperInvariant();
-            if (string.IsNullOrEmpty(catCode)) catCode = "GEN";
-            var hash = Math.Abs((CatalogState.SearchQuery + CatalogState.SelectedCategory + CatalogState.SelectedForm + CatalogState.SelectedEra).GetHashCode()) % 900 + 100;
-            return $"{catCode}-{hash}";
-        }
-    }
-
-    // Library Card profile edit state
-    private bool isEditingProfile = false;
-    private string editUsername = "";
-    private string editPassword = "";
-    private bool isSavingProfile = false;
-    private string? profileStatusMessage;
-    private bool profileStatusSuccess;
-
     protected override async Task OnInitializedAsync()
     {
-        AuthState.OnChange += HandleAuthStateChanged;
-        CatalogState.OnFacetChanged += HandleCatalogStateChanged;
-        CatalogState.OnStatsUpdated += HandleCatalogStateChanged;
+        AuthState.OnChange += HandleStateChanged;
+        CatalogState.OnFacetChanged += HandleStateChanged;
+        CatalogState.OnStatsUpdated += HandleStateChanged;
         await AuthState.InitializeAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender) return;
+        try
         {
-            try
-            {
-                var savedTheme = await JS.InvokeAsync<string?>("EveryPageStorage.get", "everypage_peanuts_theme");
-                if (savedTheme == "bw-minimal") savedTheme = "snoopy-day";
-                if (savedTheme == "peppermint-patty") savedTheme = "charlie-brown";
-
-                if (!string.IsNullOrWhiteSpace(savedTheme) && Themes.Any(t => t.Id == savedTheme))
-                {
-                    currentTheme = savedTheme;
-                }
-                await JS.InvokeVoidAsync("EveryPageTheme.set", currentTheme);
-                StateHasChanged();
-            }
-            catch
-            {
-            }
+            var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+            if (width < 1024) { isLeftSidebarOpen = false; isRightSidebarOpen = false; }
         }
+        catch { }
+
+        try
+        {
+            var savedTheme = await JS.InvokeAsync<string?>("EveryPageStorage.get", "everypage_peanuts_theme");
+            if (savedTheme == "bw-minimal") savedTheme = "snoopy-day";
+            if (savedTheme == "peppermint-patty") savedTheme = "charlie-brown";
+            if (!string.IsNullOrWhiteSpace(savedTheme) && MoodSidebar.Themes.Any(t => t.Id == savedTheme)) currentTheme = savedTheme;
+            await JS.InvokeVoidAsync("EveryPageTheme.set", currentTheme);
+        }
+        catch { }
+
+        StateHasChanged();
     }
 
-    private async Task HandleHeaderSearch()
+    private async Task ResetToHome()
     {
-        EnsureOnHomeRoute();
-        await CatalogState.ApplySearchAsync();
-    }
-
-    private async Task HandleClearHeaderSearch()
-    {
-        EnsureOnHomeRoute();
-        await CatalogState.ClearSearchAsync();
-    }
-
-    private async Task SelectDomain(string domain)
-    {
-        EnsureOnHomeRoute();
-        await CatalogState.SetCategoryAsync(domain);
-    }
-
-    private async Task ResetCatalogFilters()
-    {
-        EnsureOnHomeRoute();
+        isLeftSidebarOpen = false;
+        isRightSidebarOpen = false;
+        catalogSidebar?.CollapseState();
         await CatalogState.ResetAllAsync();
+        Navigation.NavigateTo("/", forceLoad: false);
+        try { await JS.InvokeVoidAsync("window.scrollTo", 0, 0); } catch { }
     }
 
-    private void HandleUploadClick()
-    {
-        EnsureOnHomeRoute();
-        CatalogState.RequestUpload();
-    }
+    private void MobileToggleCatalog() { isLeftSidebarOpen = !isLeftSidebarOpen; if (isLeftSidebarOpen) isRightSidebarOpen = false; }
+    private void MobileToggleMood() { isRightSidebarOpen = !isRightSidebarOpen; if (isRightSidebarOpen) isLeftSidebarOpen = false; }
+    private void MobileShowBooks() { isLeftSidebarOpen = false; isRightSidebarOpen = false; }
+    private void CloseMobileSidebars() { isLeftSidebarOpen = false; isRightSidebarOpen = false; }
+
+    private async Task HandleHeaderSearch() { EnsureOnHomeRoute(); await CatalogState.ApplySearchAsync(); }
+    private async Task HandleClearHeaderSearch() { EnsureOnHomeRoute(); await CatalogState.ClearSearchAsync(); }
+    private async Task SelectDomain(string domain) { EnsureOnHomeRoute(); await CatalogState.SetCategoryAsync(domain); }
+    private async Task ResetCatalogFilters() { EnsureOnHomeRoute(); await CatalogState.ResetAllAsync(); }
+    private void HandleUploadClick() { EnsureOnHomeRoute(); CatalogState.RequestUpload(); }
 
     private void EnsureOnHomeRoute()
     {
-        var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
-        if (!string.IsNullOrEmpty(relative))
-        {
-            Navigation.NavigateTo("/");
-        }
+        if (!string.IsNullOrEmpty(Navigation.ToBaseRelativePath(Navigation.Uri))) Navigation.NavigateTo("/");
     }
 
     private async Task SelectTheme(string themeId)
@@ -627,77 +213,23 @@
 
     private async Task HandleNowPlayingClick()
     {
-        if (!isRightSidebarOpen)
-        {
-            isRightSidebarOpen = true;
-            return;
-        }
-        if (audioDrawer is not null)
-        {
-            await audioDrawer.TogglePlayPause();
-        }
+        if (!isRightSidebarOpen) { isRightSidebarOpen = true; return; }
+        if (moodSidebar?.AudioDrawer is not null) await moodSidebar.AudioDrawer.TogglePlayPause();
     }
-
-    private void CloseMobileSidebars()
-    {
-        isLeftSidebarOpen = false;
-        isRightSidebarOpen = false;
-    }
-
-    private void ToggleEditProfile()
-    {
-        isEditingProfile = !isEditingProfile;
-        profileStatusMessage = null;
-        if (isEditingProfile && AuthState.CurrentUser != null)
-        {
-            editUsername = AuthState.CurrentUser.Username;
-            editPassword = "";
-        }
-    }
-
-    private async Task SaveProfileChanges()
-    {
-        isSavingProfile = true;
-        profileStatusMessage = null;
-        try
-        {
-            var (success, msg) = await AuthState.UpdateProfileAsync(editUsername, editPassword);
-            profileStatusSuccess = success;
-            profileStatusMessage = msg;
-            if (success)
-            {
-                editPassword = "";
-                await Task.Delay(700);
-                isEditingProfile = false;
-                profileStatusMessage = null;
-            }
-        }
-        finally
-        {
-            isSavingProfile = false;
-        }
-    }
-
-    private void HandleAuthStateChanged() => InvokeAsync(StateHasChanged);
-    private void HandleCatalogStateChanged() => InvokeAsync(StateHasChanged);
 
     private async Task SignOut()
     {
-        isEditingProfile = false;
+        catalogSidebar?.CollapseState();
         await AuthState.SignOutAsync();
         Navigation.NavigateTo("/");
     }
 
-    private void HandleAuthenticated()
-    {
-        isAuthModalOpen = false;
-        StateHasChanged();
-    }
+    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
 
     public void Dispose()
     {
-        AuthState.OnChange -= HandleAuthStateChanged;
-        CatalogState.OnFacetChanged -= HandleCatalogStateChanged;
-        CatalogState.OnStatsUpdated -= HandleCatalogStateChanged;
+        AuthState.OnChange -= HandleStateChanged;
+        CatalogState.OnFacetChanged -= HandleStateChanged;
+        CatalogState.OnStatsUpdated -= HandleStateChanged;
     }
 }

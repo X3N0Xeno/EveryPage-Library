@@ -1,3 +1,4 @@
+window.epMobilePlay = function(p) { if (!p || typeof p.playVideo !== 'function') return; try { p.playVideo(); setTimeout(function() { if (typeof p.getPlayerState === 'function' && p.getPlayerState() !== 1 && typeof p.mute === 'function') { p.mute(); p.playVideo(); setTimeout(function() { if (typeof p.unMute === 'function') p.unMute(); }, 300); } }, 250); } catch (e) {} };
 window.EveryPageStorage = {
     get: function (key) {
         try { return localStorage.getItem(key); } catch { return null; }

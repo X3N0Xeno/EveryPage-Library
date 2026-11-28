@@ -1,0 +1,56 @@
+<div class="p-3.5 space-y-4 overflow-y-auto flex-1 broadsheet-sidebar">
+    <div class="space-y-2.5">
+        <div class="flex items-center justify-between pb-1.5 border-b-2 border-[#1C1917]">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full @(IsAudioPlaying ? "bg-emerald-500 animate-pulse" : "bg-[#57534E]") border border-[#1C1917]"></span>
+                <span class="font-comic text-sm font-bold text-[#1C1917]">Reading Soundtrack</span>
+            </div>
+            <span class="font-mono text-[10px] uppercase text-[#57534E]">YouTube</span>
+        </div>
+
+        <AmbienceDrawer @ref="AudioDrawer"
+                        OnMoodChanged="OnMoodChanged"
+                        OnPlayStateChanged="OnPlayStateChanged" />
+    </div>
+
+    <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="font-comic text-sm font-bold text-[#1C1917]">Paper Theme</span>
+            <span class="font-mono text-[10px] uppercase text-[#57534E]">4 Editions</span>
+        </div>
+        <div class="space-y-1.5">
+            @foreach (var theme in Themes)
+            {
+                var active = CurrentTheme == theme.Id;
+                <button type="button" @onclick="() => OnSelectTheme.InvokeAsync(theme.Id)"
+                        class="w-full text-left px-2.5 py-2 rounded-sm border-2 text-xs font-comic font-bold flex items-center justify-between transition-all @(active ? "border-[#1C1917] bg-[#F4C430] text-[#1C1917] shadow-[2px_2px_0px_#1C1917]" : "border-[#1C1917]/25 bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
+                    <span class="truncate">@theme.Label</span>
+                    <span class="flex items-center gap-1 shrink-0">
+                        <span class="w-3 h-3 rounded-full border border-[#1C1917]" style="background:@theme.SwatchPrimary"></span>
+                        <span class="w-3 h-3 rounded-full border border-[#1C1917]" style="background:@theme.SwatchAccent"></span>
+                    </span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    public sealed record ThemeOption(string Id, string Label, string SwatchPrimary, string SwatchAccent);
+
+    public static readonly IReadOnlyList<ThemeOption> Themes = new[]
+    {
+        new ThemeOption("charlie-brown", "Charlie Brown (Classic)", "#FAF6EC", "#F4C430"),
+        new ThemeOption("linus-blanket", "Linus's Blanket (Cool)", "#E6EFF8", "#2563EB"),
+        new ThemeOption("snoopy-day", "Snoopy (Daytime B&W)", "#FFFFFF", "#111111"),
+        new ThemeOption("snoopy-night", "Snoopy (Nighttime B&W)", "#101010", "#F5F5F5")
+    };
+
+    public AmbienceDrawer? AudioDrawer { get; private set; }
+
+    [Parameter] public bool IsAudioPlaying { get; set; }
+    [Parameter] public string CurrentTheme { get; set; } = "charlie-brown";
+    [Parameter] public EventCallback<string?> OnMoodChanged { get; set; }
+    [Parameter] public EventCallback<bool> OnPlayStateChanged { get; set; }
+    [Parameter] public EventCallback<string> OnSelectTheme { get; set; }
+}

@@ -9,10 +9,14 @@
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
-<HeroMasthead FeaturedBooks="featuredBooks"
+@* ep-hide-hero-on-search *@
+@if (!(!string.IsNullOrWhiteSpace(CatalogState.SearchQuery)))
+{
+    <HeroMasthead FeaturedBooks="featuredBooks"
               CanShuffle="@(books.Count > 3)"
               OnShuffle="ShuffleFeaturedBooks"
               OnSelectBook="OpenReader" />
+}
 
 <BookShelfGrid @ref="shelfGrid"
                SelectedCategory="@CatalogState.SelectedCategory"

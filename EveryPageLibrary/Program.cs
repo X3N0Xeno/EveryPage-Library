@@ -36,6 +36,7 @@ var supabaseClient = new Supabase.Client(supabaseUrl, supabaseKey, supabaseOptio
 await supabaseClient.InitializeAsync();
 
 builder.Services.AddSingleton(supabaseClient);
+builder.Services.AddScoped<ArchiveModerationService>();
 builder.Services.AddScoped<ArchiveService>();
 builder.Services.AddScoped<AuthStateService>();
 builder.Services.AddScoped<CatalogStateService>();

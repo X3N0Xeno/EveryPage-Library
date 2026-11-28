@@ -16,7 +16,7 @@
 
     @if (IsInitialLoading && TotalLoadedCount == 0)
     {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid ep-mobile-grid grid-cols-2 gap-2.5 sm:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @for (int i = 0; i < 9; i++)
             {
                 <BookCardSkeleton />
@@ -41,17 +41,17 @@
     }
     else
     {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach (var book in Books)
+        <div class="grid ep-mobile-grid grid-cols-2 gap-2.5 sm:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach (var book in (Books).OrderBy(x => (((x.FileUrl ?? "") + (x.CoverUrl ?? "") + (x.SourceName ?? "") + (x.EpubUrl ?? "") + (x.PdfUrl ?? "")).Contains("gutenberg", StringComparison.OrdinalIgnoreCase) || ((x.SourceName ?? "") + (x.FileUrl ?? "")).Contains("sacred", StringComparison.OrdinalIgnoreCase)) ? 1 : 0))
             {
-                <BookCard @key="GetKey(book)"
+                <div @key="GetKey(book)" @onclick="() => OnRead.InvokeAsync(book)" class="cursor-pointer block h-full"><BookCard
                           Book="book"
                           IsAuditor="@IsAuditor"
                           IsDownloading="@(DownloadingBookKey == GetKey(book))"
                           OnRead="OnRead"
                           OnDownload="OnDownload"
                           OnEdit="OnEdit"
-                          OnSeal="OnSeal" />
+                          OnSeal="OnSeal" /></div>
             }
 
             @if (IsLoadingMore)

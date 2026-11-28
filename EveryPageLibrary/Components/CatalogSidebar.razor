@@ -1,0 +1,263 @@
+@using EveryPageLibrary.Models
+@using EveryPageLibrary.Services
+@inject AuthStateService AuthState
+@inject CatalogStateService CatalogState
+
+<div class="p-3.5 space-y-4 overflow-y-auto flex-1 broadsheet-sidebar">
+    @if (AuthState.IsAuditor)
+    {
+        <div class="grid grid-cols-2 gap-1.5 font-comic text-xs font-bold uppercase">
+            <NavLink href="" Match="NavLinkMatch.All"
+                     class="text-center px-2.5 py-2 rounded-sm border-2 border-[#1C1917]/30 bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F2EAD8] transition-all"
+                     ActiveClass="!border-[#1C1917] !bg-[#F4C430] !text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">
+                Browse Books
+            </NavLink>
+            <NavLink href="audit-sanctum"
+                     class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-sm border-2 border-[#1C1917]/30 bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F2EAD8] transition-all"
+                     ActiveClass="!border-[#1C1917] !bg-[#F4C430] !text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">
+                <span>Site Audit</span>
+                <span class="w-2 h-2 rounded-full bg-[#D93829] border border-[#1C1917]"></span>
+            </NavLink>
+        </div>
+    }
+    else
+    {
+        <div class="font-comic text-xs font-bold uppercase">
+            <NavLink href="" Match="NavLinkMatch.All"
+                     class="block text-center px-2.5 py-2 rounded-sm border-2 border-[#1C1917]/30 bg-[#FFFDF7] text-[#1C1917] hover:bg-[#F2EAD8] transition-all"
+                     ActiveClass="!border-[#1C1917] !bg-[#F4C430] !text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">
+                Browse Books
+            </NavLink>
+        </div>
+    }
+
+    <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+            <span class="font-comic text-base font-bold text-[#1C1917]">The Card Catalog</span>
+            <button type="button" @onclick="OnUploadClick"
+                    class="ink-btn inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-comic font-bold uppercase bg-[#D93829] hover:bg-[#b82b1e] text-[#FFFDF7] rounded-sm">
+                <span>+ Upload PDF</span>
+            </button>
+        </div>
+
+        <div class="relative bg-[#FAF6EC] border-2 border-[#1C1917] shadow-[3px_3px_0px_#1C1917] rounded-sm overflow-hidden">
+            <div class="px-3 py-1.5 border-b-2 border-[#D93829] bg-[#FFFDF7] flex items-center justify-between font-mono text-[9px] font-bold uppercase tracking-wider">
+                <span class="text-[#D93829]">Call No. @GeneratedCallNumber</span>
+                <span class="text-[#57534E]">@(CatalogState.IsLoading ? "Indexing..." : $"{CatalogState.TotalOnShelf} Cards")</span>
+            </div>
+
+            <div class="px-3 py-2.5 space-y-1.5 bg-[linear-gradient(transparent_21px,rgba(28,25,23,0.10)_22px)] bg-[length:100%_22px]">
+                <div class="font-mono text-[9px] uppercase tracking-wider text-[#57534E]">Subject Heading</div>
+                <div class="font-serif text-sm font-bold text-[#1C1917] leading-snug line-clamp-2">
+                    @(string.IsNullOrWhiteSpace(CatalogState.SearchQuery)
+                        ? (CatalogState.SelectedCategory == "All" ? "General Collection — All Domains" : CatalogState.SelectedCategory)
+                        : $"“{CatalogState.SearchQuery.Trim()}”")
+                </div>
+                <div class="flex flex-wrap gap-1 pt-1">
+                    <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase bg-[#F4C430] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedCategory</span>
+                    @if (CatalogState.SelectedForm != "All") { <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedForm</span> }
+                    @if (CatalogState.SelectedFactuality != "All") { <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedFactuality</span> }
+                    @if (CatalogState.SelectedAudience != "All") { <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedAudience</span> }
+                    @if (CatalogState.SelectedEra != "All") { <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedEra</span> }
+                    @if (CatalogState.SelectedRights != "All") { <span class="px-1.5 py-0.5 text-[9px] font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm">@CatalogState.SelectedRights</span> }
+                </div>
+            </div>
+
+            <div class="px-3 py-1.5 bg-[#F2EAD8] border-t border-[#1C1917]/25 flex items-center justify-between">
+                <span class="font-mono text-[9px] text-[#57534E] uppercase">EveryPage Drawer</span>
+                <span class="w-3 h-3 rounded-full bg-[#FAF6EC] border-2 border-[#1C1917] inline-block"></span>
+                @if (HasActiveFilters)
+                {
+                    <button type="button" @onclick="OnResetFilters" class="font-mono text-[9px] font-bold uppercase text-[#D93829] hover:underline">Reset</button>
+                }
+                else
+                {
+                    <span class="font-mono text-[9px] text-[#57534E] uppercase">Active</span>
+                }
+            </div>
+        </div>
+
+        <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">Domains</span>
+                <button type="button" @onclick="() => showAllDomains = !showAllDomains" class="font-mono text-[10px] font-bold text-[#D93829] hover:underline">
+                    @(showAllDomains ? "Show Less ▲" : $"All ({BookGenres.Filters.Count}) ▼")
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+                @foreach (var domain in VisibleDomains)
+                {
+                    var isSelected = CatalogState.SelectedCategory == domain;
+                    <button type="button" @onclick="() => OnSelectDomain.InvokeAsync(domain)"
+                            class="px-2 py-1 text-[10px] font-mono font-bold rounded-full border border-[#1C1917] transition-all @(isSelected ? "bg-[#1C1917] text-[#FFFDF7] shadow-[1px_1px_0px_#F4C430]" : "bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
+                        @domain
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2 pt-1">
+            <div>
+                <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Form &amp; Structure</label>
+                <select @bind="CatalogState.SelectedForm" @bind:after="CatalogState.NotifyFacetChanged" class="ink-field ink-select w-full text-xs font-mono py-1.5 pl-2 rounded-sm">
+                    <option value="All">All Forms</option>
+                    @foreach (var tag in BookGenres.FormTags) { <option value="@tag">@tag</option> }
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Factuality</label>
+                    <select @bind="CatalogState.SelectedFactuality" @bind:after="CatalogState.NotifyFacetChanged" class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
+                        <option value="All">All</option>
+                        @foreach (var tag in BookGenres.FactualityTags) { <option value="@tag">@tag</option> }
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Audience</label>
+                    <select @bind="CatalogState.SelectedAudience" @bind:after="CatalogState.NotifyFacetChanged" class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
+                        <option value="All">All</option>
+                        @foreach (var tag in BookGenres.AudienceTags) { <option value="@tag">@tag</option> }
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Era</label>
+                    <select @bind="CatalogState.SelectedEra" @bind:after="CatalogState.NotifyFacetChanged" class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
+                        <option value="All">All Eras</option>
+                        @foreach (var tag in BookGenres.EraTags) { <option value="@tag">@tag</option> }
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-mono text-[9px] font-bold uppercase tracking-wider text-[#57534E] mb-0.5">Access</label>
+                    <select @bind="CatalogState.SelectedRights" @bind:after="CatalogState.NotifyFacetChanged" class="ink-field ink-select w-full text-[11px] font-mono py-1.5 pl-2 rounded-sm">
+                        <option value="All">All Tiers</option>
+                        @foreach (var tag in BookGenres.RightsTags) { <option value="@tag">@tag</option> }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pt-3 border-t-2 border-dashed border-[#1C1917]/25 space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">Library Card</span>
+            @if (AuthState.IsAuthenticated)
+            {
+                <button type="button" @onclick="ToggleEditProfile" class="font-mono text-[10px] font-bold uppercase text-[#D93829] hover:underline">
+                    @(isEditingProfile ? "Cancel Edit" : "Edit Card")
+                </button>
+            }
+        </div>
+
+        @if (AuthState.IsAuthenticated)
+        {
+            <div class="p-2.5 rounded-sm bg-[#F2EAD8] border-2 border-[#1C1917] space-y-2">
+                <div class="flex items-center justify-between gap-2 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="w-2.5 h-2.5 rounded-full @(AuthState.IsAuditor ? "bg-[#D93829]" : "bg-[#F4C430]") border border-[#1C1917] shrink-0"></span>
+                        <span class="text-xs font-bold text-[#1C1917] truncate">@AuthState.CurrentUser?.Username</span>
+                    </div>
+                    <span class="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-sm border border-[#1C1917] bg-[#FFFDF7] text-[#1C1917] shrink-0">
+                        @(AuthState.IsAuditor ? "Auditor" : "Contributor")
+                    </span>
+                </div>
+
+                @if (isEditingProfile)
+                {
+                    <div class="pt-2 border-t border-dashed border-[#1C1917]/30 space-y-2">
+                        <div>
+                            <label class="block font-mono text-[9px] font-bold uppercase text-[#57534E] mb-0.5">Card Name</label>
+                            <input type="text" @bind="editUsername" placeholder="New username" class="ink-field w-full px-2 py-1 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm" />
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[9px] font-bold uppercase text-[#57534E] mb-0.5">New Password (Optional)</label>
+                            <input type="password" @bind="editPassword" placeholder="Leave blank to keep" class="ink-field w-full px-2 py-1 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border border-[#1C1917] rounded-sm" />
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(profileStatusMessage))
+                        {
+                            <div class="p-1.5 text-[10px] font-mono font-bold rounded-sm border border-[#1C1917] @(profileStatusSuccess ? "bg-[#F4C430]/50 text-[#1C1917]" : "bg-[#D93829] text-[#FFFDF7]")">@profileStatusMessage</div>
+                        }
+                        <button type="button" @onclick="SaveProfileChanges" disabled="@isSavingProfile"
+                                class="w-full ink-btn px-2.5 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
+                            @(isSavingProfile ? "Saving..." : "Save Card Changes")
+                        </button>
+                    </div>
+                }
+            </div>
+            <button type="button" @onclick="OnSignOut" class="w-full ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917] rounded-sm">Sign Out</button>
+        }
+        else
+        {
+            <button type="button" @onclick="OnOpenAuthModal" class="w-full ink-btn px-3 py-2 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">Library Card Sign In</button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnUploadClick { get; set; }
+    [Parameter] public EventCallback OnResetFilters { get; set; }
+    [Parameter] public EventCallback<string> OnSelectDomain { get; set; }
+    [Parameter] public EventCallback OnSignOut { get; set; }
+    [Parameter] public EventCallback OnOpenAuthModal { get; set; }
+
+    private bool showAllDomains;
+    private bool isEditingProfile;
+    private string editUsername = "";
+    private string editPassword = "";
+    private bool isSavingProfile;
+    private string? profileStatusMessage;
+    private bool profileStatusSuccess;
+
+    private IEnumerable<string> VisibleDomains => showAllDomains ? BookGenres.Filters : BookGenres.Filters.Take(7);
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(CatalogState.SearchQuery) ||
+        CatalogState.SelectedCategory != "All" || CatalogState.SelectedForm != "All" ||
+        CatalogState.SelectedFactuality != "All" || CatalogState.SelectedAudience != "All" ||
+        CatalogState.SelectedEra != "All" || CatalogState.SelectedRights != "All";
+
+    private string GeneratedCallNumber
+    {
+        get
+        {
+            var catCode = CatalogState.SelectedCategory == "All" ? "ALL" : new string(CatalogState.SelectedCategory.Where(char.IsLetter).Take(3).ToArray()).ToUpperInvariant();
+            if (string.IsNullOrEmpty(catCode)) catCode = "GEN";
+            var hash = Math.Abs((CatalogState.SearchQuery + CatalogState.SelectedCategory + CatalogState.SelectedForm + CatalogState.SelectedEra).GetHashCode()) % 900 + 100;
+            return $"{catCode}-{hash}";
+        }
+    }
+
+    public void CollapseState() { showAllDomains = false; isEditingProfile = false; }
+
+    private void ToggleEditProfile()
+    {
+        isEditingProfile = !isEditingProfile;
+        profileStatusMessage = null;
+        if (isEditingProfile && AuthState.CurrentUser != null)
+        {
+            editUsername = AuthState.CurrentUser.Username;
+            editPassword = "";
+        }
+    }
+
+    private async Task SaveProfileChanges()
+    {
+        isSavingProfile = true;
+        profileStatusMessage = null;
+        try
+        {
+            var (success, msg) = await AuthState.UpdateProfileAsync(editUsername, editPassword);
+            profileStatusSuccess = success;
+            profileStatusMessage = msg;
+            if (success)
+            {
+                editPassword = "";
+                await Task.Delay(700);
+                isEditingProfile = false;
+                profileStatusMessage = null;
+            }
+        }
+        finally { isSavingProfile = false; }
+    }
+}

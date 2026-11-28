@@ -18,10 +18,12 @@ public class ArchiveService
     private const string CommunitySource = "Community PDF";
 
     private readonly Supabase.Client _supabase;
+    private readonly ArchiveModerationService _moderation;
 
-    public ArchiveService(Supabase.Client supabase)
+    public ArchiveService(Supabase.Client supabase, ArchiveModerationService moderation)
     {
         _supabase = supabase;
+        _moderation = moderation;
     }
 
     // -------------------------------------------------------------------------
@@ -260,92 +262,12 @@ public class ArchiveService
         haystack != null && haystack.Contains(term, StringComparison.OrdinalIgnoreCase);
 
     // -------------------------------------------------------------------------
-    // Reader comments
+    // Reader comments (delegated to ArchiveModerationService)
     // -------------------------------------------------------------------------
 
-    public async Task<List<BookComment>> GetCommentsForBookAsync(long bookId)
-    {
-        try
-        {
-            var response = await _supabase.From<BookComment>()
-                .Where(c => c.BookId == bookId && c.DeletedAt == null)
-                .Order(c => c.CreatedAt, Ordering.Ascending)
-                .Get();
-
-            return response.Models;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ArchiveService] Error fetching comments for book #{bookId}: {ex.Message}");
-            return new List<BookComment>();
-        }
-    }
-
-    public async Task<BookComment?> AddCommentAsync(long bookId, string bookTitle, string authorName, string authorRole, string body)
-    {
-        try
-        {
-            var comment = new BookComment
-            {
-                BookId = bookId,
-                AuthorName = authorName,
-                Body = body,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            var response = await _supabase.From<BookComment>().Insert(comment);
-            var inserted = response.Models.FirstOrDefault() ?? comment;
-
-            await LogAuditAsync(
-                actorName: authorName,
-                actorRole: authorRole,
-                action: "POST_COMMENT",
-                targetType: "Comment",
-                targetTitle: bookTitle,
-                details: $"Comment added to '{bookTitle}': \"{(body.Length > 60 ? body[..60] + "..." : body)}\""
-            );
-
-            return inserted;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ArchiveService] Error adding comment: {ex.Message}");
-            return null;
-        }
-    }
-
-    public async Task<bool> SoftDeleteCommentAsync(long commentId, long bookId, string bookTitle, string actorName, string actorRole)
-    {
-        try
-        {
-            var comment = await _supabase.From<BookComment>()
-                .Where(c => c.Id == commentId)
-                .Single();
-
-            if (comment == null) return false;
-
-            comment.DeletedAt = DateTime.UtcNow;
-            await _supabase.From<BookComment>()
-                .Where(c => c.Id == commentId)
-                .Update(comment);
-
-            await LogAuditAsync(
-                actorName: actorName,
-                actorRole: actorRole,
-                action: "DELETE_COMMENT",
-                targetType: "Comment",
-                targetTitle: bookTitle,
-                details: $"Comment #{commentId} was removed from public view on '{bookTitle}'."
-            );
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ArchiveService] Error soft-deleting comment #{commentId}: {ex.Message}");
-            return false;
-        }
-    }
+    public Task<List<BookComment>> GetCommentsForBookAsync(long bookId) => _moderation.GetCommentsForBookAsync(bookId);
+    public Task<BookComment?> AddCommentAsync(long bookId, string bookTitle, string authorName, string authorRole, string body) => _moderation.AddCommentAsync(bookId, bookTitle, authorName, authorRole, body);
+    public Task<bool> SoftDeleteCommentAsync(long commentId, long bookId, string bookTitle, string actorName, string actorRole) => _moderation.SoftDeleteCommentAsync(commentId, bookId, bookTitle, actorName, actorRole);
 
     // -------------------------------------------------------------------------
     // Community PDF uploads and metadata editing
@@ -533,53 +455,8 @@ public class ArchiveService
     // Audit trail and statistics
     // -------------------------------------------------------------------------
 
-    public async Task<List<AuditLog>> GetAuditLogsAsync(string? filterAction = null, int limit = 100, int offset = 0)
-    {
-        try
-        {
-            Supabase.Postgrest.Interfaces.IPostgrestTable<AuditLog> query = _supabase.From<AuditLog>();
-
-            if (!string.IsNullOrWhiteSpace(filterAction) && !filterAction.Equals("All", StringComparison.OrdinalIgnoreCase))
-            {
-                query = query.Where(a => a.Action == filterAction);
-            }
-
-            var response = await query
-                .Order(a => a.CreatedAt, Ordering.Descending)
-                .Range(offset, offset + limit - 1)
-                .Get();
-
-            return response.Models;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ArchiveService] Error fetching audit logs: {ex.Message}");
-            return new List<AuditLog>();
-        }
-    }
-
-    public async Task LogAuditAsync(string actorName, string actorRole, string action, string targetType, string targetTitle, string details)
-    {
-        try
-        {
-            var entry = new AuditLog
-            {
-                ActorName = string.IsNullOrWhiteSpace(actorName) ? "Guest reader" : actorName,
-                ActorRole = string.IsNullOrWhiteSpace(actorRole) ? "reader" : actorRole,
-                Action = action,
-                TargetType = targetType,
-                TargetTitle = targetTitle,
-                Details = details,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _supabase.From<AuditLog>().Insert(entry);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ArchiveService] Error recording audit log: {ex.Message}");
-        }
-    }
+    public Task<List<AuditLog>> GetAuditLogsAsync(string? filterAction = null, int limit = 100, int offset = 0) => _moderation.GetAuditLogsAsync(filterAction, limit, offset);
+    public Task LogAuditAsync(string actorName, string actorRole, string action, string targetType, string targetTitle, string details) => _moderation.LogAuditAsync(actorName, actorRole, action, targetType, targetTitle, details);
 
     public async Task<(int TotalBooks, int CommunityPdfs, int TotalDownloads, int TotalLogs)> GetArchiveStatsAsync()
     {

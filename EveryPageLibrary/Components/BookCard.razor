@@ -161,6 +161,18 @@
 </article>
 
 @code {
+    private static string CleanExternalUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        if (url.Contains("standardebooks.org/ebooks?query=", StringComparison.OrdinalIgnoreCase))
+        {
+            var idx = url.IndexOf("%20by%20", StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) idx = url.IndexOf("+by+", StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) idx = url.IndexOf(" by ", StringComparison.OrdinalIgnoreCase);
+            if (idx > 0) return url[..idx];
+        }
+        return url;
+    }
     [Parameter, EditorRequired] public Book Book { get; set; } = default!;
     [Parameter] public bool IsAuditor { get; set; }
     [Parameter] public bool IsDownloading { get; set; }
@@ -173,11 +185,11 @@
 
     private bool HasPdf =>
         !string.IsNullOrWhiteSpace(Book.PdfUrl) ||
-        (Book.FileUrl?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true);
+        (CleanExternalUrl(Book.FileUrl)?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true);
 
     private bool HasTextDownload =>
         !string.IsNullOrWhiteSpace(Book.ContentText) ||
-        (Book.FileUrl?.Contains("txt", StringComparison.OrdinalIgnoreCase) == true);
+        (CleanExternalUrl(Book.FileUrl)?.Contains("txt", StringComparison.OrdinalIgnoreCase) == true);
 
     private bool HasAnyDownload =>
         HasPdf || !string.IsNullOrWhiteSpace(Book.EpubUrl) || HasTextDownload;
