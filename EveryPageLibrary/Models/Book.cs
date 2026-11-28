@@ -1,5 +1,5 @@
-using System.Text.Json.Serialization;
 using System;
+using System.Text.Json.Serialization;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -66,20 +66,22 @@ public class Book : BaseModel
 
     // ---- Derived, not persisted -------------------------------------------------
 
-    /// <summary>True when this book exists in Supabase already (has a catalog id).</summary>
+    [JsonIgnore]
     public bool IsIndexed => Id > 0;
 
-    /// <summary>Short label used by the source badge on every card and reader.</summary>
+    [JsonIgnore]
     public string SourceBadge => string.IsNullOrWhiteSpace(SourceName) ? "Community PDF" : SourceName;
 
-    /// <summary>Category label shown to readers ("Codex" is the legacy value for General).</summary>
+    [JsonIgnore]
     public string GenreLabel => BookGenres.ToLabel(Category);
 
-    /// <summary>Publication year, falling back to "Year unknown".</summary>
+    [JsonIgnore]
     public string YearLabel => string.IsNullOrWhiteSpace(PublicationYear) ? "Year unknown" : PublicationYear;
 
+    private BookFacetProfile? _cachedProfile;
+
     [JsonIgnore]
-    public BookFacetProfile FacetProfile => BookGenres.Classify(this);
+    public BookFacetProfile FacetProfile => _cachedProfile ??= BookGenres.Classify(this);
 
     [JsonIgnore]
     public string FormTag => FacetProfile.Form;

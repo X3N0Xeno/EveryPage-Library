@@ -38,6 +38,8 @@ await supabaseClient.InitializeAsync();
 builder.Services.AddSingleton(supabaseClient);
 builder.Services.AddScoped<ArchiveService>();
 builder.Services.AddScoped<AuthStateService>();
+builder.Services.AddScoped<CatalogStateService>();
+builder.Services.AddScoped<BookDownloadService>();
 
 // Federated open-web book catalog (Gutendex + Open Library). Each source gets its
 // own client because the catalog URLs are absolute and slower than the app host.

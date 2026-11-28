@@ -1,0 +1,98 @@
+@using EveryPageLibrary.Models
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+    <div class="flex items-end justify-between gap-3 mb-5">
+        <div>
+            <span class="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-[#57534E]">The Shelf</span>
+            <h2 class="font-comic text-2xl sm:text-3xl font-bold text-[#1C1917] leading-tight">
+                @(SelectedCategory == "All" ? "Every Domain" : SelectedCategory)
+            </h2>
+        </div>
+        @if (!IsInitialLoading)
+        {
+            <span class="stamp bg-[#FFFDF7] text-[#1C1917] shadow-[2px_2px_0px_#1C1917]">@Books.Count on shelf</span>
+        }
+    </div>
+
+    @if (IsInitialLoading && TotalLoadedCount == 0)
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (int i = 0; i < 9; i++)
+            {
+                <BookCardSkeleton />
+            }
+        </div>
+    }
+    else if (Books.Count == 0)
+    {
+        <div class="max-w-md mx-auto my-14">
+            <div class="speech-bubble p-7 sm:p-8 text-center">
+                <h3 class="font-comic text-2xl font-bold text-[#1C1917] mb-2">No Index Cards Match These Axes</h3>
+                <p class="text-base text-[#57534E] mb-5">
+                    No editions match that exact combination of facets. Loosen one of the 6 taxonomy filters or reset your search!
+                </p>
+                <button type="button"
+                        @onclick="OnResetFilters"
+                        class="ink-btn px-5 py-2 text-sm font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
+                    Reset Facet Filters
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach (var book in Books)
+            {
+                <BookCard @key="GetKey(book)"
+                          Book="book"
+                          IsAuditor="@IsAuditor"
+                          IsDownloading="@(DownloadingBookKey == GetKey(book))"
+                          OnRead="OnRead"
+                          OnDownload="OnDownload"
+                          OnEdit="OnEdit"
+                          OnSeal="OnSeal" />
+            }
+
+            @if (IsLoadingMore)
+            {
+                @for (int i = 0; i < 3; i++)
+                {
+                    <BookCardSkeleton />
+                }
+            }
+        </div>
+
+        <div @ref="SentinelRef" class="h-14 mt-8 flex items-center justify-center">
+            @if (!HasMorePages)
+            {
+                <div class="flex items-center gap-3 w-full max-w-md">
+                    <span class="flex-1 border-t-2 border-dashed border-[#1C1917]/30"></span>
+                    <p class="font-mono text-xs uppercase tracking-widest text-[#57534E] whitespace-nowrap">
+                        End of shelf &middot; @Books.Count books
+                    </p>
+                    <span class="flex-1 border-t-2 border-dashed border-[#1C1917]/30"></span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string SelectedCategory { get; set; } = "All";
+    [Parameter] public List<Book> Books { get; set; } = new();
+    [Parameter] public int TotalLoadedCount { get; set; }
+    [Parameter] public bool IsInitialLoading { get; set; }
+    [Parameter] public bool IsLoadingMore { get; set; }
+    [Parameter] public bool HasMorePages { get; set; }
+    [Parameter] public bool IsAuditor { get; set; }
+    [Parameter] public string? DownloadingBookKey { get; set; }
+    [Parameter] public Func<Book, string> GetKey { get; set; } = b => b.Title;
+    [Parameter] public EventCallback OnResetFilters { get; set; }
+    [Parameter] public EventCallback<Book> OnRead { get; set; }
+    [Parameter] public EventCallback<Book> OnDownload { get; set; }
+    [Parameter] public EventCallback<Book> OnEdit { get; set; }
+    [Parameter] public EventCallback<Book> OnSeal { get; set; }
+
+    public ElementReference SentinelRef { get; private set; }
+}

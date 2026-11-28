@@ -153,6 +153,69 @@ public class AuthStateService
         }
     }
 
+    public async Task<(bool Success, string Message)> UpdateProfileAsync(string newUsername, string? newPasscode)
+    {
+        if (CurrentUser == null)
+        {
+            return (false, "You must be signed in to update your Library Card.");
+        }
+
+        var trimmedUsername = newUsername?.Trim() ?? "";
+        if (trimmedUsername.Length < 3)
+        {
+            return (false, "Username must contain at least 3 characters.");
+        }
+
+        if (!string.IsNullOrEmpty(newPasscode) && newPasscode.Length < 4)
+        {
+            return (false, "New password must contain at least 4 characters.");
+        }
+
+        try
+        {
+            var oldUsername = CurrentUser.Username;
+            if (!trimmedUsername.Equals(oldUsername, StringComparison.OrdinalIgnoreCase))
+            {
+                var existing = await _supabase.From<Scholar>()
+                    .Where(s => s.Username == trimmedUsername)
+                    .Get();
+
+                if (existing.Models.Any(s => s.Id != CurrentUser.Id))
+                {
+                    return (false, $"The username '{trimmedUsername}' is already taken.");
+                }
+            }
+
+            var updatedPasscode = string.IsNullOrEmpty(newPasscode) ? CurrentUser.Passcode : newPasscode;
+            CurrentUser.Username = trimmedUsername;
+            CurrentUser.Passcode = updatedPasscode;
+
+            await _supabase.From<Scholar>().Update(CurrentUser);
+
+            var json = JsonSerializer.Serialize(CurrentUser);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "everypage_library_user", json);
+
+            await _archiveService.LogAuditAsync(
+                actorName: CurrentUser.Username,
+                actorRole: CurrentUser.Role,
+                action: "SCHOLAR_PROFILE_UPDATE",
+                targetType: "Library Card",
+                targetTitle: CurrentUser.Username,
+                details: oldUsername != CurrentUser.Username
+                    ? $"Updated Library Card username from '{oldUsername}' to '{CurrentUser.Username}'."
+                    : $"Updated Library Card credentials for '{CurrentUser.Username}'."
+            );
+
+            NotifyStateChanged();
+            return (true, "Library Card updated!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AuthStateService] Profile update error: {ex.Message}");
+            return (false, $"Update failed: {ex.Message}");
+        }
+    }
+
     public async Task SignOutAsync()
     {
         if (CurrentUser != null)

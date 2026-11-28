@@ -7,182 +7,129 @@
     <div id="ep-matchbox-yt-host"></div>
 </div>
 
-@if (IsOpen)
-{
-    <div class="fixed bottom-4 right-4 z-50 w-[calc(100vw-2rem)] sm:w-[400px] bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm overflow-hidden">
-        <!-- Header Bar -->
-        <div class="flex items-center justify-between px-3 py-2 bg-[#F2EAD8] border-b-2 border-[#1C1917]">
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full @(isPlaying ? "bg-emerald-500 animate-pulse" : "bg-[#57534E]") border border-[#1C1917]"></span>
-                <span class="font-mono text-[11px] font-bold uppercase tracking-wider text-[#1C1917]">
-                    YouTube Audio Player
-                </span>
-            </div>
-            <div class="flex items-center gap-2 font-mono text-[11px] font-bold">
-                <button type="button"
-                        @onclick="() => isMinimized = !isMinimized"
-                        class="px-1.5 py-0.5 hover:bg-[#FFFDF7] rounded-sm text-[#1C1917]">
-                    @(isMinimized ? "Expand" : "Minimize")
-                </button>
-                <button type="button"
-                        @onclick="CloseDrawer"
-                        class="px-1.5 py-0.5 hover:bg-[#D93829] hover:text-[#FFFDF7] rounded-sm text-[#1C1917]">
-                    Close
-                </button>
-            </div>
+<div class="space-y-3">
+    <!-- YouTube Link Input -->
+    <div class="space-y-1.5">
+        <label class="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
+            YouTube Link
+        </label>
+        <div class="flex gap-1.5">
+            <input type="text"
+                   @bind="queryInput"
+                   @bind:event="oninput"
+                   @onkeydown="HandleInputKeyDown"
+                   placeholder="Insert YouTube link"
+                   class="ink-field flex-1 min-w-0 px-2.5 py-1.5 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border-2 border-[#1C1917] rounded-sm focus:outline-none" />
+            <button type="button"
+                    @onclick="SubmitLink"
+                    disabled="@isLoading"
+                    class="ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm shrink-0">
+                @(isLoading ? "..." : "Go")
+            </button>
         </div>
 
-        @if (!isMinimized)
+        @if (!string.IsNullOrEmpty(validationMessage))
         {
-            <div class="p-3 space-y-3 max-h-[78vh] overflow-y-auto">
-                <!-- YouTube Link Input -->
-                <div class="space-y-1.5">
-                    <label class="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E]">
-                        YouTube Link
-                    </label>
-                    <div class="flex gap-1.5">
-                        <input type="text"
-                               @bind="queryInput"
-                               @bind:event="oninput"
-                               @onkeydown="HandleInputKeyDown"
-                               placeholder="Insert YouTube link"
-                               class="ink-field flex-1 px-2.5 py-1.5 text-xs font-mono bg-[#FFFDF7] text-[#1C1917] border-2 border-[#1C1917] rounded-sm focus:outline-none" />
-                        <button type="button"
-                                @onclick="SubmitLink"
-                                disabled="@isLoading"
-                                class="ink-btn px-3 py-1.5 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm shrink-0">
-                            @(isLoading ? "..." : "Go")
-                        </button>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(validationMessage))
-                    {
-                        <div class="p-2 rounded-sm bg-[#F2EAD8] border-2 border-[#D93829] text-xs font-mono text-[#1C1917] leading-snug">
-                            <span class="font-bold text-[#D93829] uppercase">Invalid Input:</span> @validationMessage
-                        </div>
-                    }
-                </div>
-
-                <!-- Now Playing Card -->
-                <div class="p-2.5 rounded-sm bg-[#F2EAD8] border-2 border-[#1C1917] space-y-2">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="font-mono text-[10px] uppercase font-bold text-[#57534E]">
-                                @(isLoading ? "Loading YouTube Link..." : (currentSourceLabel ?? "Idle"))
-                            </div>
-                            <div class="font-comic text-sm font-bold text-[#1C1917] truncate">
-                                @(currentTrackTitle ?? "Insert a YouTube link above or pick a preset below")
-                            </div>
-                            @if (!string.IsNullOrEmpty(currentTrackArtist))
-                            {
-                                <div class="font-mono text-[11px] text-[#57534E] truncate">
-                                    @currentTrackArtist
-                                </div>
-                            }
-                        </div>
-                        <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase border border-[#1C1917] bg-[#FFFDF7] text-[#1C1917] rounded-sm shrink-0">
-                            Autoplay
-                        </span>
-                    </div>
-
-                    <!-- Seekable Progress Bar -->
-                    <div class="space-y-1">
-                        <input type="range"
-                               min="0"
-                               max="@Math.Max(1, durationSec)"
-                               value="@currentSec"
-                               @onchange="HandleSeek"
-                               class="w-full accent-[#1C1917] cursor-pointer h-1.5" />
-                        <div class="flex justify-between font-mono text-[10px] text-[#57534E]">
-                            <span>@FormatTime(currentSec)</span>
-                            <span>@FormatTime(durationSec)</span>
-                        </div>
-                    </div>
-
-                    <!-- Transport Controls -->
-                    <div class="flex items-center justify-between pt-1">
-                        <div class="flex items-center gap-1.5">
-                            <button type="button"
-                                    @onclick="PrevTrack"
-                                    title="Previous"
-                                    class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917] rounded-sm">
-                                |&lt;
-                            </button>
-                            <button type="button"
-                                    @onclick="TogglePlayPause"
-                                    title="Play / Pause"
-                                    class="ink-btn px-3.5 py-1 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
-                                @(isPlaying ? "Pause" : "Play")
-                            </button>
-                            <button type="button"
-                                    @onclick="NextTrack"
-                                    title="Next"
-                                    class="ink-btn px-2.5 py-1 text-xs font-mono font-bold bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917] rounded-sm">
-                                &gt;|
-                            </button>
-                        </div>
-
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-mono text-[10px] font-bold text-[#57534E]">@volume%</span>
-                            <input type="range"
-                                   min="0"
-                                   max="100"
-                                   value="@volume"
-                                   @oninput="HandleVolume"
-                                   class="w-16 accent-[#1C1917] cursor-pointer h-1.5" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Reading Presets -->
-                <div>
-                    <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E] mb-1.5">
-                        Quick Reading Presets
-                    </div>
-                    <div class="grid grid-cols-2 gap-1.5">
-                        @foreach (var preset in ReadingPresets)
-                        {
-                            var active = activePresetId == preset.Id;
-                            <button type="button"
-                                    @onclick="() => LoadPreset(preset)"
-                                    class="text-left px-2.5 py-1.5 rounded-sm border-2 text-xs font-comic font-bold transition-all @(active ? "border-[#1C1917] bg-[#F4C430] text-[#1C1917] shadow-[2px_2px_0px_#1C1917]" : "border-[#1C1917]/30 bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
-                                <div class="truncate">@preset.Name</div>
-                                <div class="font-mono text-[9px] font-normal @(active ? "opacity-80" : "text-[#57534E]") truncate">@preset.Tracks.Count tracks</div>
-                            </button>
-                        }
-                    </div>
-                </div>
-            </div>
-        }
-        else
-        {
-            <!-- Minimized Compact Bar -->
-            <div class="px-3 py-2 flex items-center justify-between gap-2 bg-[#FFFDF7]">
-                <div class="min-w-0">
-                    <div class="font-comic text-xs font-bold text-[#1C1917] truncate">
-                        @(currentTrackTitle ?? "YouTube Audio Player")
-                    </div>
-                    <div class="font-mono text-[10px] text-[#57534E] truncate">
-                        @FormatTime(currentSec) / @FormatTime(durationSec)
-                    </div>
-                </div>
-                <div class="flex items-center gap-1 shrink-0">
-                    <button type="button" @onclick="TogglePlayPause" class="ink-btn px-2.5 py-1 text-[11px] font-comic font-bold uppercase bg-[#F4C430] text-[#1C1917] rounded-sm">
-                        @(isPlaying ? "Pause" : "Play")
-                    </button>
-                    <button type="button" @onclick="NextTrack" class="ink-btn px-2 py-1 text-[11px] font-mono font-bold bg-[#FFFDF7] text-[#1C1917] rounded-sm">
-                        &gt;|
-                    </button>
-                </div>
+            <div class="p-2 rounded-sm bg-[#F2EAD8] border-2 border-[#D93829] text-xs font-mono text-[#1C1917] leading-snug">
+                <span class="font-bold text-[#D93829] uppercase">Invalid Input:</span> @validationMessage
             </div>
         }
     </div>
-}
+
+    <!-- Now Playing Card -->
+    <div class="p-2.5 rounded-sm bg-[#F2EAD8] border-2 border-[#1C1917] space-y-2">
+        <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+                <div class="font-mono text-[10px] uppercase font-bold text-[#57534E]">
+                    @(isLoading ? "Loading YouTube Link..." : (currentSourceLabel ?? "Idle"))
+                </div>
+                <div class="font-comic text-sm font-bold text-[#1C1917] truncate">
+                    @(currentTrackTitle ?? "Insert a YouTube link above or pick a preset below")
+                </div>
+                @if (!string.IsNullOrEmpty(currentTrackArtist))
+                {
+                    <div class="font-mono text-[11px] text-[#57534E] truncate">
+                        @currentTrackArtist
+                    </div>
+                }
+            </div>
+            <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase border border-[#1C1917] bg-[#FFFDF7] text-[#1C1917] rounded-sm shrink-0">
+                Autoplay
+            </span>
+        </div>
+
+        <!-- Seekable Progress Bar -->
+        <div class="space-y-1">
+            <input type="range"
+                   min="0"
+                   max="@Math.Max(1, durationSec)"
+                   value="@currentSec"
+                   @onchange="HandleSeek"
+                   class="w-full accent-[#1C1917] cursor-pointer h-1.5" />
+            <div class="flex justify-between font-mono text-[10px] text-[#57534E]">
+                <span>@FormatTime(currentSec)</span>
+                <span>@FormatTime(durationSec)</span>
+            </div>
+        </div>
+
+        <!-- Transport Controls -->
+        <div class="flex items-center justify-between pt-1">
+            <div class="flex items-center gap-1.5">
+                <button type="button"
+                        @onclick="PrevTrack"
+                        title="Previous"
+                        class="ink-btn px-2 py-1 text-xs font-mono font-bold bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917] rounded-sm">
+                    |&lt;
+                </button>
+                <button type="button"
+                        @onclick="TogglePlayPause"
+                        title="Play / Pause"
+                        class="ink-btn px-3 py-1 text-xs font-comic font-bold uppercase bg-[#F4C430] hover:bg-[#e5b522] text-[#1C1917] rounded-sm">
+                    @(isPlaying ? "Pause" : "Play")
+                </button>
+                <button type="button"
+                        @onclick="NextTrack"
+                        title="Next"
+                        class="ink-btn px-2 py-1 text-xs font-mono font-bold bg-[#FFFDF7] hover:bg-[#F4C430] text-[#1C1917] rounded-sm">
+                    &gt;|
+                </button>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <span class="font-mono text-[10px] font-bold text-[#57534E]">@volume%</span>
+                <input type="range"
+                       min="0"
+                       max="100"
+                       value="@volume"
+                       @oninput="HandleVolume"
+                       class="w-14 accent-[#1C1917] cursor-pointer h-1.5" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Reading Presets -->
+    <div>
+        <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#57534E] mb-1.5">
+            Quick Reading Presets
+        </div>
+        <div class="grid grid-cols-1 gap-1.5">
+            @foreach (var preset in ReadingPresets)
+            {
+                var active = activePresetId == preset.Id;
+                <button type="button"
+                        @onclick="() => LoadPreset(preset)"
+                        class="text-left px-2.5 py-1.5 rounded-sm border-2 text-xs font-comic font-bold transition-all flex items-center justify-between gap-2 @(active ? "border-[#1C1917] bg-[#F4C430] text-[#1C1917] shadow-[2px_2px_0px_#1C1917]" : "border-[#1C1917]/30 bg-[#FFFDF7] hover:bg-[#F2EAD8] text-[#1C1917]")">
+                    <span class="truncate">@preset.Name</span>
+                    <span class="font-mono text-[9px] font-normal shrink-0 @(active ? "opacity-80" : "text-[#57534E]")">@preset.Tracks.Count tracks</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
 
 @code {
-    [Parameter] public bool IsOpen { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<string?> OnMoodChanged { get; set; }
+    [Parameter] public EventCallback<bool> OnPlayStateChanged { get; set; }
 
     public sealed record TrackItem(string Title, string Artist, string? VideoId = null, string? PlaylistId = null, string? Duration = null);
     public sealed record ResolveResponse(string Status, string? ErrorMessage, string? SourceLabel, TrackItem[]? Items);
@@ -219,7 +166,6 @@
 
     private DotNetObjectReference<AmbienceDrawer>? dotNetRef;
     private bool initialized;
-    private bool isMinimized;
     private bool isPlaying;
     private bool isLoading;
     private string activePresetId = "";
@@ -310,10 +256,11 @@
 
         await JS.InvokeVoidAsync("EveryPageMusic.playDirect", track.VideoId, track.PlaylistId, volume);
         isPlaying = true;
+        await OnPlayStateChanged.InvokeAsync(true);
         await OnMoodChanged.InvokeAsync(track.Title);
     }
 
-    private async Task TogglePlayPause()
+    public async Task TogglePlayPause()
     {
         if (queue.Count == 0)
         {
@@ -321,6 +268,7 @@
             return;
         }
         isPlaying = await JS.InvokeAsync<bool>("EveryPageMusic.togglePlay");
+        await OnPlayStateChanged.InvokeAsync(isPlaying);
     }
 
     private async Task NextTrack()
@@ -363,14 +311,16 @@
         }
     }
 
-    private Task CloseDrawer() => OnClose.InvokeAsync();
-
     [JSInvokable]
     public async Task OnPlayerProgress(int current, int duration, bool playing, string? liveTitle, string? liveArtist)
     {
         currentSec = current;
         durationSec = duration;
-        isPlaying = playing;
+        if (isPlaying != playing)
+        {
+            isPlaying = playing;
+            await OnPlayStateChanged.InvokeAsync(playing);
+        }
 
         if (!string.IsNullOrWhiteSpace(liveTitle) && liveTitle != currentTrackTitle)
         {

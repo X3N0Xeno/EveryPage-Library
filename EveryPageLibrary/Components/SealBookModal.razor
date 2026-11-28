@@ -1,0 +1,37 @@
+@using EveryPageLibrary.Models
+
+@if (IsOpen && Book != null)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-[#1C1917]/60 flex items-center justify-center p-4 animate-modal-in" role="dialog" aria-modal="true">
+        <div class="w-full max-w-md bg-[#FFFDF7] border-2 border-[#1C1917] shadow-[6px_6px_0px_#1C1917] rounded-sm overflow-hidden">
+            <div class="px-6 py-4 border-b-2 border-[#1C1917] bg-[#D93829] text-[#FFFDF7]">
+                <span class="font-mono text-[11px] font-bold uppercase tracking-[0.18em] opacity-90">Moderation</span>
+                <h3 class="font-comic text-2xl font-bold leading-tight">Remove Index Card?</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-base text-[#1C1917]">
+                    Deleting <strong class="font-serif">@Book.Title</strong> removes it from the public shelf. You can restore it anytime from Site Audit.
+                </p>
+                <div>
+                    <label class="block text-[11px] font-mono font-bold uppercase tracking-wider text-[#57534E] mb-1">Reason</label>
+                    <input type="text"
+                           @bind="Reason"
+                           class="ink-field w-full text-sm p-2.5 rounded-sm" />
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-3 border-t-2 border-dashed border-[#1C1917]/25">
+                    <button type="button" @onclick="OnCancel" class="ink-btn px-4 py-1.5 text-xs font-mono font-bold uppercase bg-[#FFFDF7] text-[#1C1917] rounded-sm">Cancel</button>
+                    <button type="button" @onclick="() => OnConfirm.InvokeAsync(Reason)" class="ink-btn px-4 py-1.5 text-xs font-mono font-bold uppercase bg-[#D93829] text-[#FFFDF7] rounded-sm">Confirm Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public Book? Book { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<string> OnConfirm { get; set; }
+
+    private string Reason { get; set; } = "Content moderation";
+}
