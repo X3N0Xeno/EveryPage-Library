@@ -16,13 +16,13 @@ public class OpenAlexBookSource
     public OpenAlexBookSource(HttpClient http) => _http = http;
 
     public Task<List<Book>> SearchAsync(string query, string? genre, int limit = 15, int page = 1, CancellationToken ct = default) =>
-        FetchAsync($"https://api.openalex.org/works?search={Uri.EscapeDataString(query)}&filter=has_fulltext:true,is_oa:true,type:book&per-page={limit}&page={page}", genre, ct);
+        FetchAsync($"https://api.openalex.org/works?search={Uri.EscapeDataString(query)}&filter=has_fulltext:true,is_oa:true,type:book&per-page={limit}&page={page}&mailto=everypage-library@pages.dev", genre, ct);
 
     public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 15, int page = 1, CancellationToken ct = default) =>
-        FetchAsync($"https://api.openalex.org/works?search={Uri.EscapeDataString(genre)}&filter=has_fulltext:true,is_oa:true,type:book&per-page={limit}&page={page}", genre, ct);
+        FetchAsync($"https://api.openalex.org/works?search={Uri.EscapeDataString(genre)}&filter=has_fulltext:true,is_oa:true,type:book&per-page={limit}&page={page}&mailto=everypage-library@pages.dev", genre, ct);
 
     public Task<List<Book>> GetPopularAsync(int limit = 15, int page = 1, CancellationToken ct = default) =>
-        FetchAsync($"https://api.openalex.org/works?filter=has_fulltext:true,is_oa:true,type:book&sort=cited_by_count:desc&per-page={limit}&page={page}", null, ct);
+        FetchAsync($"https://api.openalex.org/works?filter=has_fulltext:true,is_oa:true,type:book&sort=cited_by_count:desc&per-page={limit}&page={page}&mailto=everypage-library@pages.dev", null, ct);
 
     private async Task<List<Book>> FetchAsync(string endpoint, string? genre, CancellationToken ct)
     {

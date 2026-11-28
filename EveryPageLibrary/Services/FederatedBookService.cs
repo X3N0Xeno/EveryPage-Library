@@ -93,9 +93,9 @@ public class FederatedBookService
             tasks.Add(_internetArchive.SearchAsync(query!, genre, 20, page, cancellationToken));
             tasks.Add(_wikibooks.SearchAsync(query!, genre, 12, page, cancellationToken));
             tasks.Add(_sacredTexts.SearchAsync(query!, genre, 12, page, cancellationToken));
-            tasks.Add(_doab.SearchAsync(query!, genre, 12, page, cancellationToken));
+            // DOAB & OAPEN handled via /api/web-books proxy to avoid browser CORS 403
             tasks.Add(_openAlex.SearchAsync(query!, genre, 15, page, cancellationToken));
-            tasks.Add(_oapen.SearchAsync(query!, genre, 12, page, cancellationToken));
+            
             tasks.Add(_webMirror.SearchAsync(query!, genre, 15, page, cancellationToken));
         }
         else if (hasGenre)
@@ -106,9 +106,9 @@ public class FederatedBookService
             tasks.Add(_internetArchive.BrowseSubjectAsync(genre!, 20, page, cancellationToken));
             tasks.Add(_wikibooks.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
             tasks.Add(_sacredTexts.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
-            tasks.Add(_doab.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+            // DOAB & OAPEN handled via /api/web-books proxy
             tasks.Add(_openAlex.BrowseSubjectAsync(genre!, 15, page, cancellationToken));
-            tasks.Add(_oapen.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+            
         }
         else
         {
@@ -118,9 +118,9 @@ public class FederatedBookService
             tasks.Add(_internetArchive.GetPopularAsync(20, page, cancellationToken));
             tasks.Add(_wikibooks.GetPopularAsync(12, page, cancellationToken));
             tasks.Add(_sacredTexts.GetPopularAsync(12, page, cancellationToken));
-            tasks.Add(_doab.GetPopularAsync(12, page, cancellationToken));
+            // DOAB & OAPEN handled via /api/web-books proxy
             tasks.Add(_openAlex.GetPopularAsync(15, page, cancellationToken));
-            tasks.Add(_oapen.GetPopularAsync(12, page, cancellationToken));
+            
         }
 
         var accumulated = new List<Book>();

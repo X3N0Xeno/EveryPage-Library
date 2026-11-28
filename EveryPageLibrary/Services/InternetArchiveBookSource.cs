@@ -137,7 +137,7 @@ public class InternetArchiveBookSource
 
     public Task<List<Book>> GetPopularAsync(int limit = 28, int page = 1, CancellationToken cancellationToken = default)
     {
-        var q = "mediatype:texts AND NOT collection:inlibrary AND (subject:\"fiction\" OR subject:\"literature\" OR subject:\"classics\")";
+        var q = "mediatype:texts AND NOT collection:inlibrary AND NOT collection:printdisabled AND NOT access-restricted-item:true AND (subject:\"fiction\" OR subject:\"literature\" OR subject:\"classics\")";
         return FetchAsync(q, null, limit, page, cancellationToken);
     }
 
@@ -145,8 +145,8 @@ public class InternetArchiveBookSource
     {
         var safeQuery = EscapeQuery(query);
         var q = !string.IsNullOrWhiteSpace(genre) && !genre.Equals("All", StringComparison.OrdinalIgnoreCase)
-            ? $"({safeQuery}) AND subject:\"{EscapeQuery(BookGenres.ToInternetArchiveSubject(genre))}\" AND mediatype:texts AND NOT collection:inlibrary"
-            : $"({safeQuery}) AND mediatype:texts AND NOT collection:inlibrary";
+            ? $"({safeQuery}) AND subject:\"{EscapeQuery(BookGenres.ToInternetArchiveSubject(genre))}\" AND mediatype:texts AND NOT collection:inlibrary AND NOT collection:printdisabled AND NOT access-restricted-item:true"
+            : $"({safeQuery}) AND mediatype:texts AND NOT collection:inlibrary AND NOT collection:printdisabled AND NOT access-restricted-item:true";
 
         return FetchAsync(q, genre, limit, page, cancellationToken);
     }
@@ -154,7 +154,7 @@ public class InternetArchiveBookSource
     public Task<List<Book>> BrowseSubjectAsync(string genre, int limit = 28, int page = 1, CancellationToken cancellationToken = default)
     {
         var subject = EscapeQuery(BookGenres.ToInternetArchiveSubject(genre));
-        var q = $"subject:\"{subject}\" AND mediatype:texts AND NOT collection:inlibrary";
+        var q = $"subject:\"{subject}\" AND mediatype:texts AND NOT collection:inlibrary AND NOT collection:printdisabled AND NOT access-restricted-item:true";
         return FetchAsync(q, genre, limit, page, cancellationToken);
     }
 
