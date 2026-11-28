@@ -60,7 +60,7 @@ public class BookDownloadService
             }
             else if (book.ExternalId?.StartsWith("se-", StringComparison.OrdinalIgnoreCase) == true)
             {
-                var targetUrl = book.FileUrl ?? book.EpubUrl;
+                var targetUrl = CleanStandardEbooksUrl(book.FileUrl ?? book.EpubUrl);
                 success = await _js.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
                 toastText = $"Opened Standard Ebooks page for \"{book.Title}\" (1 click to save EPUB/AZW3/Kepub).";
             }
@@ -152,5 +152,18 @@ public class BookDownloadService
         var invalid = System.IO.Path.GetInvalidFileNameChars();
         var cleaned = string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c)).Replace(" ", "_");
         return string.IsNullOrWhiteSpace(cleaned) ? "EveryPage_Book" : cleaned;
+    }
+
+    private static string? CleanStandardEbooksUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return url;
+        if (!url.Contains("standardebooks.org/ebooks?query=", StringComparison.OrdinalIgnoreCase)) return url;
+
+        foreach (var sep in new[] { "%20by%20", "%2C%20by%20", "+by+", " by " })
+        {
+            var idx = url.IndexOf(sep, StringComparison.OrdinalIgnoreCase);
+            if (idx > 0) return url[..idx];
+        }
+        return url;
     }
 }

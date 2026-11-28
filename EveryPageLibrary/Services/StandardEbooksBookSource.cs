@@ -76,7 +76,7 @@ public class StandardEbooksBookSource
                 var date = ReadFirstString(item, "date") ?? string.Empty;
                 var year = new string(date.Where(char.IsDigit).Take(4).ToArray());
                 var description = ReadFirstString(item, "description");
-                var cleanTitle = title.Trim();
+                var cleanTitle = System.Text.RegularExpressions.Regex.Replace(title.Trim(), @"\s+by\s+.+$", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
                 var searchLanding = $"https://standardebooks.org/ebooks?query={Uri.EscapeDataString(cleanTitle)}";
 
                 results.Add(new Book
