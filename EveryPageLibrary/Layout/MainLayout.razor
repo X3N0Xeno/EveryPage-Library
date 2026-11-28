@@ -28,7 +28,7 @@
                                 <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                             <input type="text" @bind="CatalogState.SearchQuery" @bind:event="oninput"
-                                   placeholder="Search titles, authors, Standard Ebooks, Gutenberg, Open Library..."
+                                   placeholder="Search any title, author, textbook, or topic (Free Full-Text PDFs & EPUBs)..."
                                    aria-label="Search library catalog"
                                    class="ink-field w-full pl-9 pr-8 py-1.5 sm:py-2 text-xs sm:text-sm font-mono bg-[#FFFDF7] text-[#1C1917] border-2 border-[#1C1917] rounded-sm focus:outline-none" />
                             @if (!string.IsNullOrWhiteSpace(CatalogState.SearchQuery))
@@ -96,7 +96,7 @@
                     <div class="sacred-divider max-w-md mx-auto my-3"><div class="sacred-divider-diamond"></div></div>
                     <p class="font-comic text-lg sm:text-xl font-bold text-[#1C1917] mb-1.5">"Everything Humanity Has Written, Open to Everyone."</p>
                     <div class="text-xs font-mono text-[#57534E] space-y-1">
-                        <p>EveryPage Library &bull; Community PDFs, Internet Archive, Open Library, Project Gutenberg, Wikisource &amp; DOAB</p>
+                        <p>EveryPage Library &bull; Community PDFs, Internet Archive, Standard Ebooks, OAPEN, DOAB, OpenAlex &amp; Wikibooks</p>
                         <p>Typed up fresh on warm paper &mdash; free to read and download without an account</p>
                     </div>
                 </div>

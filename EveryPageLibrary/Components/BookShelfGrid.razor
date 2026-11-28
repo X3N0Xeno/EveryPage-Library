@@ -42,7 +42,7 @@
     else
     {
         <div class="grid ep-mobile-grid grid-cols-2 gap-2.5 sm:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach (var book in (Books).OrderBy(x => (((x.FileUrl ?? "") + (x.CoverUrl ?? "") + (x.SourceName ?? "") + (x.EpubUrl ?? "") + (x.PdfUrl ?? "")).Contains("gutenberg", StringComparison.OrdinalIgnoreCase) || ((x.SourceName ?? "") + (x.FileUrl ?? "")).Contains("sacred", StringComparison.OrdinalIgnoreCase)) ? 1 : 0))
+            @foreach (var book in Books.Where(b => !((b.SourceName ?? string.Empty) + (b.FileUrl ?? string.Empty)).Contains("gutenberg", StringComparison.OrdinalIgnoreCase) && !((b.SourceName ?? string.Empty) + (b.FileUrl ?? string.Empty)).Contains("open library", StringComparison.OrdinalIgnoreCase) && !(b.FileUrl ?? string.Empty).Contains("openlibrary.org", StringComparison.OrdinalIgnoreCase)).OrderBy(b => (!string.IsNullOrWhiteSpace(b.PdfUrl) || !string.IsNullOrWhiteSpace(b.EpubUrl)) ? 0 : 1))
             {
                 <div @key="GetKey(book)" @onclick="() => OnRead.InvokeAsync(book)" class="cursor-pointer block h-full"><BookCard
                           Book="book"

@@ -1,7 +1,8 @@
 export async function onRequestGet(context) {
   const url = new URL(context.request.url);
   const rawQ = (url.searchParams.get("q") || "").trim();
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "25", 10) || 25, 40);
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "40", 10) || 40, 60);
+  const serperKey = context.env?.SERPER_API_KEY || "";
 
   const corsHeaders = {
     "Content-Type": "application/json; charset=utf-8",
@@ -13,39 +14,128 @@ export async function onRequestGet(context) {
     return new Response(JSON.stringify({ results: [] }), { headers: corsHeaders });
   }
 
+  const aliases = {
+    "lotr": "Lord of the Rings",
+    "got": "Game of Thrones",
+    "asoiaf": "A Song of Ice and Fire",
+    "hp": "Harry Potter",
+    "bible": "Holy Bible",
+    "narnia": "Chronicles of Narnia"
+  };
+  const expandedQ = aliases[rawQ.toLowerCase()] || rawQ;
+
   const seen = new Set();
   const items = [];
-
   const addItem = (item) => {
     if (!item || !item.url || seen.has(item.url)) return;
+    if (!/^https?:\/\//i.test(item.url)) return;
     seen.add(item.url);
     items.push(item);
   };
 
-  // 1. OAPEN & DOAB server-side (zero browser CORS blocks)
+  // Resolve a cover image by book title/query via Open Library Covers (free, no key) or Serper Images
+  const resolveCoverUrl = async (queryText) => {
+    try {
+      const olRes = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(queryText)}&fields=cover_i&limit=3`, {
+        signal: AbortSignal.timeout(4000)
+      });
+      if (olRes.ok) {
+        const olData = await olRes.json();
+        const hit = (olData.docs || []).find(d => d.cover_i);
+        if (hit?.cover_i) {
+          return `https://covers.openlibrary.org/b/id/${hit.cover_i}-L.jpg`;
+        }
+      }
+    } catch {}
+
+    if (serperKey) {
+      try {
+        const imgRes = await fetch("https://google.serper.dev/images", {
+          method: "POST",
+          headers: { "X-API-Key": serperKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ q: `${queryText} book cover`, num: 1 }),
+          signal: AbortSignal.timeout(4000)
+        });
+        if (imgRes.ok) {
+          const imgData = await imgRes.json();
+          if (imgData?.images?.[0]?.imageUrl) return imgData.images[0].imageUrl;
+        }
+      } catch {}
+    }
+    return null;
+  };
+
+  // 1. Real Google Search via Serper.dev (finds every indexed .pdf and .epub across the entire web)
+  const fetchGooglePdfs = async (ext) => {
+    if (!serperKey) return;
+    try {
+      const res = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: { "X-API-Key": serperKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ q: `${expandedQ} filetype:${ext}`, num: 20 }),
+        signal: AbortSignal.timeout(6000)
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const r of data.organic || []) {
+        if (!r.link) continue;
+        let host = "Web PDF";
+        try { host = new URL(r.link).hostname.replace(/^www\./, ""); } catch {}
+        addItem({
+          title: (r.title || expandedQ).replace(/\s*\[PDF\]\s*/gi, "").trim(),
+          url: r.link,
+          snippet: r.snippet || `Direct ${ext.toUpperCase()} found via Google Search (${host}).`,
+          host,
+          format: ext
+        });
+      }
+    } catch {}
+  };
+
+  // 2. Internet Archive Broadened Direct PDFs & EPUBs (searches title + creator across all PDF formats)
+  const fetchArchiveDirect = async () => {
+    try {
+      const q = `(title:(${expandedQ}) OR (${expandedQ})) AND mediatype:texts AND format:(PDF OR EPUB) AND NOT collection:printdisabled`;
+      const api = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=format&rows=20&output=json`;
+      const res = await fetch(api, { signal: AbortSignal.timeout(6500) });
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const d of data?.response?.docs || []) {
+        if (!d.identifier || !d.title) continue;
+        const title = Array.isArray(d.title) ? d.title[0] : d.title;
+        const creator = Array.isArray(d.creator) ? d.creator[0] : (d.creator || "Internet Archive");
+        const formats = Array.isArray(d.format) ? d.format.join(" ").toLowerCase() : String(d.format || "").toLowerCase();
+        const ext = formats.includes("pdf") ? "pdf" : "epub";
+        const idEnc = encodeURIComponent(d.identifier);
+        addItem({
+          title: String(title).trim(),
+          url: `https://archive.org/download/${idEnc}/${idEnc}.${ext}`,
+          coverUrl: `https://archive.org/services/img/${idEnc}`,
+          snippet: `Full-text ${ext.toUpperCase()} by ${creator} (Internet Archive).`,
+          host: String(creator),
+          format: ext
+        });
+      }
+    } catch {}
+  };
+
+  // 3. OAPEN, DOAB & Wikibooks Open-Access Full-Text Books
   const fetchDspaceBooks = async (baseUrl, sourceName) => {
     try {
-      const res = await fetch(`${baseUrl}/rest/search?query=${encodeURIComponent(rawQ)}&expand=metadata,bitstreams&limit=12`, {
+      const res = await fetch(`${baseUrl}/rest/search?query=${encodeURIComponent(expandedQ)}&expand=bitstreams&limit=8`, {
         headers: { "Accept": "application/json", "User-Agent": "EveryPageLibrary/1.0" },
-        signal: AbortSignal.timeout(5500)
+        signal: AbortSignal.timeout(5000)
       });
       if (!res.ok) return;
       const arr = await res.json();
       if (!Array.isArray(arr)) return;
       for (const entry of arr) {
-        if (!entry.handle || !entry.name) continue;
-        let pdfUrl = null;
-        for (const bs of (entry.bitstreams || [])) {
-          if (bs.retrieveLink && ((bs.mimeType || "").includes("pdf") || bs.retrieveLink.toLowerCase().endsWith(".pdf"))) {
-            pdfUrl = `${baseUrl}${bs.retrieveLink}`;
-            break;
-          }
-        }
-        if (!pdfUrl) continue;
+        const pdfBs = (entry.bitstreams || []).find(bs => bs.retrieveLink && ((bs.mimeType || "").includes("pdf") || bs.retrieveLink.toLowerCase().endsWith(".pdf")));
+        if (!entry.name || !pdfBs) continue;
         addItem({
           title: entry.name.trim(),
-          url: pdfUrl,
-          snippet: `Peer-reviewed open-access PDF from ${sourceName}.`,
+          url: `${baseUrl}${pdfBs.retrieveLink}`,
+          snippet: `Open-access PDF from ${sourceName}.`,
           host: sourceName,
           format: "pdf"
         });
@@ -53,60 +143,44 @@ export async function onRequestGet(context) {
     } catch {}
   };
 
-  // 2. OpenAlex Books server-side (bypasses browser 429 rate-limit pools)
-  const fetchOpenAlexBooks = async () => {
+  const fetchWikibooks = async () => {
     try {
-      const api = `https://api.openalex.org/works?search=${encodeURIComponent(rawQ)}&filter=has_fulltext:true,is_oa:true,type:book&per-page=12&mailto=everypage@pages.dev`;
-      const res = await fetch(api, {
-        headers: { "User-Agent": "EveryPageLibrary/1.0 (mailto:everypage@pages.dev)" },
-        signal: AbortSignal.timeout(5500)
-      });
+      const api = `https://en.wikibooks.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(expandedQ)}&srnamespace=0&srlimit=6&format=json&origin=*`;
+      const res = await fetch(api, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) return;
       const data = await res.json();
-      for (const w of (data.results || [])) {
-        const oaUrl = w?.open_access?.oa_url;
-        if (!oaUrl || !w.title) continue;
-        const authors = (w.authorships || []).slice(0, 2).map(a => a?.author?.display_name).filter(Boolean).join(", ");
+      for (const hit of data?.query?.search || []) {
+        if (!hit.title || hit.title.includes("/")) continue;
+        const slug = encodeURIComponent(hit.title.replace(/ /g, "_"));
         addItem({
-          title: w.title.trim(),
-          url: oaUrl,
-          snippet: authors ? `Open-access book by ${authors} (${w.publication_year || ""}).` : "Open-access full-text book via OpenAlex.",
-          host: authors || "OpenAlex Books",
-          format: oaUrl.toLowerCase().includes(".epub") ? "epub" : "pdf"
-        });
-      }
-    } catch {}
-  };
-
-  // 3. Internet Archive verified Text-PDFs (strictly excluding inlibrary/printdisabled/restricted)
-  const fetchArchiveDirectPdfs = async () => {
-    try {
-      const q = `(${rawQ}) AND mediatype:texts AND format:"Text PDF" AND NOT collection:inlibrary AND NOT collection:printdisabled AND NOT access-restricted-item:true`;
-      const api = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=title&fl[]=creator&sort[]=downloads+desc&rows=12&output=json`;
-      const res = await fetch(api, { signal: AbortSignal.timeout(5500) });
-      if (!res.ok) return;
-      const data = await res.json();
-      for (const d of (data?.response?.docs || [])) {
-        if (!d.identifier || !d.title) continue;
-        const title = Array.isArray(d.title) ? d.title[0] : d.title;
-        const creator = Array.isArray(d.creator) ? d.creator[0] : (d.creator || "Internet Archive");
-        addItem({
-          title: String(title).trim(),
-          url: `https://archive.org/download/${encodeURIComponent(d.identifier)}/${encodeURIComponent(d.identifier)}.pdf`,
-          snippet: `Direct public-domain PDF by ${creator}.`,
-          host: String(creator),
+          title: hit.title.trim(),
+          url: `https://en.wikibooks.org/api/rest_v1/page/pdf/${slug}`,
+          snippet: "Open-license textbook & manual (Wikibooks PDF).",
+          host: "Wikibooks",
           format: "pdf"
         });
       }
     } catch {}
   };
 
-  await Promise.allSettled([
-    fetchDspaceBooks("https://library.oapen.org", "OAPEN Library"),
-    fetchDspaceBooks("https://directory.doabooks.org", "DOAB Academic"),
-    fetchOpenAlexBooks(),
-    fetchArchiveDirectPdfs()
+  const [sharedCover] = await Promise.all([
+    resolveCoverUrl(expandedQ),
+    Promise.allSettled([
+      fetchGooglePdfs("pdf"),
+      fetchGooglePdfs("epub"),
+      fetchArchiveDirect(),
+      fetchDspaceBooks("https://library.oapen.org", "OAPEN Library"),
+      fetchDspaceBooks("https://directory.doabooks.org", "DOAB Academic"),
+      fetchWikibooks()
+    ])
   ]);
+
+  // Attach cover art to every result that doesn't already have a thumbnail
+  for (const item of items) {
+    if (!item.coverUrl && sharedCover) {
+      item.coverUrl = sharedCover;
+    }
+  }
 
   return new Response(JSON.stringify({ results: items.slice(0, limit) }), { headers: corsHeaders });
 }
