@@ -17,6 +17,9 @@ public class FederatedBookService
     private readonly WikibooksBookSource _wikibooks;
     private readonly SacredTextsBookSource _sacredTexts;
     private readonly DoabBookSource _doab;
+    private readonly OpenAlexBookSource _openAlex;
+    private readonly OapenBookSource _oapen;
+    private readonly OpenWebMirrorBookSource _webMirror;
 
     private readonly ConcurrentDictionary<string, List<Book>> _pageCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -27,7 +30,10 @@ public class FederatedBookService
         StandardEbooksBookSource standardEbooks,
         WikibooksBookSource wikibooks,
         SacredTextsBookSource sacredTexts,
-        DoabBookSource doab)
+        DoabBookSource doab,
+        OpenAlexBookSource openAlex,
+        OapenBookSource oapen,
+        OpenWebMirrorBookSource webMirror)
     {
         _gutendex = gutendex;
         _openLibrary = openLibrary;
@@ -36,6 +42,9 @@ public class FederatedBookService
         _wikibooks = wikibooks;
         _sacredTexts = sacredTexts;
         _doab = doab;
+        _openAlex = openAlex;
+        _oapen = oapen;
+        _webMirror = webMirror;
     }
 
     private static string BuildCacheKey(string? query, string? genre, int page) =>
@@ -85,6 +94,9 @@ public class FederatedBookService
             tasks.Add(_wikibooks.SearchAsync(query!, genre, 12, page, cancellationToken));
             tasks.Add(_sacredTexts.SearchAsync(query!, genre, 12, page, cancellationToken));
             tasks.Add(_doab.SearchAsync(query!, genre, 12, page, cancellationToken));
+            tasks.Add(_openAlex.SearchAsync(query!, genre, 15, page, cancellationToken));
+            tasks.Add(_oapen.SearchAsync(query!, genre, 12, page, cancellationToken));
+            tasks.Add(_webMirror.SearchAsync(query!, genre, 15, page, cancellationToken));
         }
         else if (hasGenre)
         {
@@ -95,6 +107,8 @@ public class FederatedBookService
             tasks.Add(_wikibooks.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
             tasks.Add(_sacredTexts.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
             tasks.Add(_doab.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
+            tasks.Add(_openAlex.BrowseSubjectAsync(genre!, 15, page, cancellationToken));
+            tasks.Add(_oapen.BrowseSubjectAsync(genre!, 12, page, cancellationToken));
         }
         else
         {
@@ -105,6 +119,8 @@ public class FederatedBookService
             tasks.Add(_wikibooks.GetPopularAsync(12, page, cancellationToken));
             tasks.Add(_sacredTexts.GetPopularAsync(12, page, cancellationToken));
             tasks.Add(_doab.GetPopularAsync(12, page, cancellationToken));
+            tasks.Add(_openAlex.GetPopularAsync(15, page, cancellationToken));
+            tasks.Add(_oapen.GetPopularAsync(12, page, cancellationToken));
         }
 
         var accumulated = new List<Book>();

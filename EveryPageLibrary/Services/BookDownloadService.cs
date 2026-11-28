@@ -109,8 +109,10 @@ public class BookDownloadService
 
                 if (string.IsNullOrWhiteSpace(targetUrl))
                 {
-                    return new DownloadOutcome(false, true,
-                        $"\"{book.Title}\" is a catalog-only record with no downloadable file.");
+                    var huntQuery = $"\"{book.Title}\" (filetype:pdf OR filetype:epub) -site:scribd.com -site:academia.edu -site:studocu.com";
+                    targetUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(huntQuery)}";
+                    success = await _js.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);
+                    return new DownloadOutcome(success, false, $"Launched paywall-free direct PDF search for \"{book.Title}\".");
                 }
 
                 success = await _js.InvokeAsync<bool>("EveryPageLibrary.openSourcePage", targetUrl);

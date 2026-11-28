@@ -46,6 +46,9 @@ builder.Services.AddScoped<BookDownloadService>();
 // own client because the catalog URLs are absolute and slower than the app host.
 builder.Services.AddScoped(sp => new GutendexBookSource(CreateCatalogClient()));
 builder.Services.AddScoped(sp => new OpenLibraryBookSource(CreateCatalogClient()));
+builder.Services.AddScoped(sp => new OpenAlexBookSource(CreateCatalogClient()));
+builder.Services.AddScoped(sp => new OapenBookSource(CreateCatalogClient()));
+builder.Services.AddScoped<OpenWebMirrorBookSource>();
 builder.Services.AddScoped<FederatedBookService>();
 
 static HttpClient CreateCatalogClient() => new() { Timeout = TimeSpan.FromSeconds(30) };
