@@ -6,3 +6,6 @@
 *.cache
 codebase.txt
 .env
+publish/
+
+.wrangler/
